@@ -93,14 +93,14 @@ impl Principle {
     pub fn texture_test() -> Self {
         Self {
             albedo: Color::black(),
-            spec: 1.0,
+            spec: 0.0,
             ior: 1.5,
             roughness: 0.5,
             diffuse: 1.0,
             metallic: 0.0,
             refraction: 0.0,
             emissive: Color::black(),
-            texture: Some(TextureMap::new("g:/rust_projects/krrust/texture_test.jpg")),
+            texture: Some(TextureMap::new("g:/rust_projects/krrust/texture_map.jpg")),
         }
     }
     
@@ -169,7 +169,6 @@ impl Scatterable for Principle {
                     .as_ref()
                     .map(|t| t.sample(rec.uv.x, rec.uv.y))
                     .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0));
-                attenuation = attenuation / 255.0;
             } 
             let mut direction: Vec3 = rec.normal + Vec3::random_unit_vector();
             let spec_mult = random_float() <= self.spec;

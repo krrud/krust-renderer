@@ -1,5 +1,6 @@
 use image::{DynamicImage, GenericImageView, Pixel};
 use crate::color::Color;
+use palette::{Srgb, LinSrgb};
 
 
 #[derive(Debug, Clone)]
@@ -15,9 +16,13 @@ impl TextureMap {
     pub fn sample(&self, u: f32, v: f32) -> Color {
         let (width, height) = self.image.dimensions();
         let x = (u * width as f32) as u32 % width;
-        let y = (v * height as f32) as u32 % height;
+        let y = ((1.0-v) * height as f32) as u32 % height;
         let pixel = self.image.get_pixel(x, y);
-        let (r, g, b) = (pixel[0], pixel[1], pixel[2]);
-        Color::new(r.into(), g.into(), b.into(), 1.0)
+        let srgb = Srgb::new(
+            f32::from(pixel[0]) / 255.0,
+            f32::from(pixel[1]) / 255.0,
+            f32::from(pixel[2]) / 255.0,
+        ).into_linear();
+        Color::new(srgb.red.into(), srgb.green.into(), srgb.blue.into(), 1.0)
     }
 }

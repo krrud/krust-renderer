@@ -7,6 +7,7 @@ use crate::ray::Ray;
 use crate::material::Material;
 use crate::aabb::Aabb;
 use std::sync::Arc;
+use std::f64::consts::PI;
 
 
 #[derive(Debug, Clone)]
@@ -50,12 +51,17 @@ impl Sphere {
                     let p = r.at(*root);
                     let normal = (p - self.center(r.time)) / self.radius;
                     let front_face = r.direction.dot(&normal) < 0.0;
+
+                    let theta = f64::acos(-p.y);
+                    let phi = f64::atan2(-p.z, p.x) + PI;        
+                    let u = phi / (2.0*PI);
+                    let v = theta / PI;
                     return (true,
                         Some(HitRecord {
                         t: *root,
                         point: p,
                         normal: if front_face {normal} else {-normal},
-                        uv: Vec2::zero(),
+                        uv: Vec2::new(u as f32, v as f32),
                         front_face,
                         material: self.material.clone(), 
                     }));

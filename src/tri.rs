@@ -61,6 +61,7 @@ impl Tri {
                 } else {
                     normal = (&edge1).cross(&edge2).unit_vector();
                 }
+                normal = (&edge1).cross(&edge2).unit_vector();
                 let front_face = normal.dot(&r.direction) < 0.0;
                 return (true,
                 Some(HitRecord {
