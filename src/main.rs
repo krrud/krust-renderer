@@ -112,7 +112,7 @@ fn main() {
     let mut world = HittableList::new();
     std::io::stdout().flush();
     println!("\rProcessing materials...");
-    let mut scene_materials: HashMap<String, Material> = HashMap::new();
+    let mut scene_materials: HashMap<String, Arc<Material>> = HashMap::new();
     let material_array = &data["scene"]["materials"].as_array().unwrap();
     for mat in material_array.iter() {
         let name = mat["name"].to_string().replace(['"'], "");
@@ -143,11 +143,12 @@ fn main() {
             metallic,
             refraction,
             emissive,
+            None
         ));
-        scene_materials.insert(name, material);
+        scene_materials.insert(name, Arc::new(material));
     }
 
-    let default_material =  Material::Principle(Principle::default());
+    let default_material =  Arc::new(Material::Principle(Principle::texture_test()));
     println!("Processing meshes...");
     // get tris
     let mesh_count = data["scene"]["mesh_count"].as_u64().unwrap();
@@ -210,8 +211,8 @@ fn main() {
             let material_name = &data["scene"]["meshes"][obj as usize]["material"]
                 .to_string()
                 .replace(['"'], "");
-            let material = *scene_materials.get(material_name).unwrap();
-            let new_tri = Object::Tri(Tri::new(vertices, normals, uvs, material, true));
+            let material = scene_materials.get(material_name).unwrap();
+            let new_tri = Object::Tri(Tri::new(vertices, normals, uvs, default_material.clone(), true));
             world.objects.push(Arc::new(new_tri));
             if vtx_array[i].as_array().unwrap().len() == 4 {
                 let p3 = Vec3::new(
@@ -231,14 +232,14 @@ fn main() {
                 let vertices = vec![p2, p3, p0];
                 let normals = vec![n2, n3, n0];
                 let uvs = vec![uv2, uv3, uv0];
-                let quad_tri = Object::Tri(Tri::new(vertices, normals, uvs, material, true));
+                let quad_tri = Object::Tri(Tri::new(vertices, normals, uvs, default_material.clone(), true));
                 world.objects.push(Arc::new(quad_tri));
             }
             
         }
     }
 
-    // get spheres
+    // // get spheres
     let sphere_count = data["scene"]["sphere_count"].as_u64().unwrap();
     for obj in 0..sphere_count {
         let material_name = &data["scene"]["spheres"][obj as usize]["material"]
@@ -261,12 +262,12 @@ fn main() {
             data["scene"]["spheres"][obj as usize]["radius"]
                 .as_f64()
                 .unwrap(),
-            *scene_materials.get(material_name).unwrap()
+            default_material.clone()//scene_materials.get(material_name).unwrap().clone()
         ));
         world.objects.push(Arc::new(new_sphere));
     }
 
-    println!("Processing lights...");
+    // println!("Processing lights...");
     let light_count = data["scene"]["light_count"].as_u64().unwrap();
     for obj in 0..light_count {
         let vtx_array = &data["scene"]["lights"][obj as usize]["points"]
@@ -305,15 +306,15 @@ fn main() {
                 .as_f64()
                 .unwrap();
 
-            let material = Material::Light(Light::new(color, intensity));
+            let material = Arc::new(Material::Light(Light::new(color, intensity)));
             let vertices = vec![p0, p1, p2];
             let vertices2 = vec![p2, p3, p0];
             let normals = vec![Vec3::black(), Vec3::black(), Vec3::black()];
             let normals2 = vec![Vec3::black(), Vec3::black(), Vec3::black()];
             let uvs = vec![Vec2::zero(), Vec2::zero(), Vec2::zero()];
             let uvs2 = vec![Vec2::zero(), Vec2::zero(), Vec2::zero()];
-            let tri1 = Object::Tri(Tri::new(vertices, normals, uvs, material, false));
-            let tri2 = Object::Tri(Tri::new(vertices2, normals2, uvs2, material, false));
+            let tri1 = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
+            let tri2 = Object::Tri(Tri::new(vertices2, normals2, uvs2, material.clone(), false));
             world.objects.push(Arc::new(tri1));
             world.objects.push(Arc::new(tri2));
         }

@@ -6,6 +6,8 @@ use crate::hit::HitRecord;
 use crate::ray::Ray;
 use crate::material::Material;
 use crate::aabb::Aabb;
+use std::sync::Arc;
+
 
 #[derive(Debug, Clone)]
 pub struct Sphere {
@@ -14,11 +16,11 @@ pub struct Sphere {
     pub time0: f64,
     pub time1: f64,
     pub radius: f64,
-    pub material: Material,
+    pub material: Arc<Material>,
 }
 
 impl Sphere {
-    pub fn new(center0: Vec3, center1: Vec3, time0: f64, time1: f64, radius: f64, material: Material) -> Sphere {
+    pub fn new(center0: Vec3, center1: Vec3, time0: f64, time1: f64, radius: f64, material: Arc<Material>) -> Sphere {
         Sphere {
             center0,
             center1,
@@ -55,7 +57,7 @@ impl Sphere {
                         normal: if front_face {normal} else {-normal},
                         uv: Vec2::zero(),
                         front_face,
-                        material: self.material, 
+                        material: self.material.clone(), 
                     }));
                 }
             }

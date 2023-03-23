@@ -22,7 +22,7 @@ pub enum Object{
 
 impl Object {
     pub fn empty() -> Object {
-        let mat = Material::Principle(Principle::default());
+        let mat = Arc::new(Material::Principle(Principle::default()));
         Object::Sphere(Sphere::new(Vec3::black(), Vec3::black(), 0.0, 1.0, 0.001, mat))
     }
 }
@@ -67,7 +67,7 @@ pub struct HitRecord {
     pub normal: Vec3,
     pub uv: Vec2,
     pub front_face: bool,
-    pub material: Material,
+    pub material: Arc<Material>,
 }
 
 impl HitRecord {

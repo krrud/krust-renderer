@@ -14,7 +14,7 @@ pub trait Emits {
     fn emit(&self) -> Color;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Material {
     Principle(Principle),
     Light(Light),
@@ -38,7 +38,7 @@ impl Emits for Material {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Principle {
     pub albedo: Color,
     pub spec: f64,
@@ -48,7 +48,7 @@ pub struct Principle {
     pub metallic: f64,
     pub refraction: f64,
     pub emissive: Color,
-    // pub texture: Option<&'a TextureMap>
+    pub texture: Option<TextureMap>
 }
 
 impl Principle {
@@ -61,7 +61,7 @@ impl Principle {
         metallic: f64,
         refraction: f64,
         emissive: Color,
-        // texture: Option<&'a TextureMap>
+        texture: Option<TextureMap>
     ) -> Principle {
         Principle {
             albedo,
@@ -72,7 +72,7 @@ impl Principle {
             metallic,
             refraction,
             emissive,
-            // texture
+            texture
         }
     }
 
@@ -86,7 +86,21 @@ impl Principle {
             metallic: 0.0,
             refraction: 0.0,
             emissive: Color::black(),
-            // texture: None,
+            texture: None,
+        }
+    }
+
+    pub fn texture_test() -> Self {
+        Self {
+            albedo: Color::black(),
+            spec: 1.0,
+            ior: 1.5,
+            roughness: 0.5,
+            diffuse: 1.0,
+            metallic: 0.0,
+            refraction: 0.0,
+            emissive: Color::black(),
+            texture: Some(TextureMap::new("g:/rust_projects/krrust/texture_test.jpg")),
         }
     }
     
@@ -150,12 +164,13 @@ impl Scatterable for Principle {
         if 1.0 - self.diffuse < roll {
             let mut lobe = "diffuse";
             let mut attenuation = self.albedo;
-            // if let Some(texture) = &self.texture {
-            //     attenuation = self.texture
-            //         .as_ref()
-            //         .map(|t| t.sample(rec.uv.x, rec.uv.y))
-            //         .unwrap_or_else(|| Color::new(1.0, 1.0, 1.0, 1.0));
-            // } 
+            if let Some(texture) = &self.texture {
+                attenuation = self.texture
+                    .as_ref()
+                    .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                    .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0));
+                attenuation = attenuation / 255.0;
+            } 
             let mut direction: Vec3 = rec.normal + Vec3::random_unit_vector();
             let spec_mult = random_float() <= self.spec;
             if Principle::reflectance(cos_theta, refraction_ratio)> random_float() && spec_mult {

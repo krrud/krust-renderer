@@ -6,18 +6,20 @@ use crate::vec2::Vec2;
 use crate::aabb::Aabb;
 use crate::color::Color;
 use crate::texture::TextureMap;
+use std::sync::Arc;
+
 
 #[derive(Debug, Clone)]
 pub struct Tri {
     pub vertices: Vec<Vec3>,
     pub normals: Vec<Vec3>,
     pub uvs: Vec<Vec2>,
-    pub material: Material,
+    pub material: Arc<Material>,
     pub smooth: bool,
 }
 
 impl Tri {
-    pub fn new(vertices: Vec<Vec3>, normals: Vec<Vec3>, uvs: Vec<Vec2>, material: Material, smooth: bool) -> Tri {
+    pub fn new(vertices: Vec<Vec3>, normals: Vec<Vec3>, uvs: Vec<Vec2>, material: Arc<Material>, smooth: bool) -> Tri {
         Tri {
             vertices,
             normals,
@@ -67,7 +69,7 @@ impl Tri {
                 normal: if front_face {normal} else {-normal},
                 uv,
                 front_face,
-                material: self.material,
+                material: self.material.clone(),
                 }));                
             }
         } else {
