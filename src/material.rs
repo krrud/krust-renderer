@@ -48,7 +48,8 @@ pub struct Principle {
     pub metallic: f64,
     pub refraction: f64,
     pub emissive: Color,
-    pub texture: Option<TextureMap>
+    pub diffuse_texture: Option<TextureMap>,
+    pub roughness_texture: Option<TextureMap>
 }
 
 impl Principle {
@@ -61,7 +62,9 @@ impl Principle {
         metallic: f64,
         refraction: f64,
         emissive: Color,
-        texture: Option<TextureMap>
+        diffuse_texture: Option<TextureMap>,
+        roughness_texture: Option<TextureMap>
+        
     ) -> Principle {
         Principle {
             albedo,
@@ -72,7 +75,8 @@ impl Principle {
             metallic,
             refraction,
             emissive,
-            texture
+            diffuse_texture,
+            roughness_texture
         }
     }
 
@@ -86,21 +90,23 @@ impl Principle {
             metallic: 0.0,
             refraction: 0.0,
             emissive: Color::black(),
-            texture: None,
+            diffuse_texture: None,
+            roughness_texture: None,
         }
     }
 
     pub fn texture_test() -> Self {
         Self {
             albedo: Color::black(),
-            spec: 0.0,
+            spec: 1.0,
             ior: 1.5,
-            roughness: 0.5,
+            roughness: 0.3,
             diffuse: 1.0,
             metallic: 0.0,
             refraction: 0.0,
             emissive: Color::black(),
-            texture: Some(TextureMap::new("g:/rust_projects/krrust/texture_map.jpg")),
+            diffuse_texture: Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_color.tga", true)),
+            roughness_texture: Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_roughness.png", true)),
         }
     }
     
@@ -119,6 +125,13 @@ impl Emits for Principle {
 
 impl Scatterable for Principle {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Option<Ray>, Color, String, Color)> {
+        let mut roughness = self.roughness;
+        if let Some(roughness_texture) = &self.roughness_texture {
+            roughness = self.roughness_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+        } 
         let roll = random_float();
         let unit_direction = Vec3::unit_vector(&r_in.direction);
         let cos_theta = f64::min(Vec3::dot(&(unit_direction * -1.0), &rec.normal), 1.0);
@@ -164,8 +177,8 @@ impl Scatterable for Principle {
         if 1.0 - self.diffuse < roll {
             let mut lobe = "diffuse";
             let mut attenuation = self.albedo;
-            if let Some(texture) = &self.texture {
-                attenuation = self.texture
+            if let Some(diffuse_texture) = &self.diffuse_texture {
+                attenuation = self.diffuse_texture
                     .as_ref()
                     .map(|t| t.sample(rec.uv.x, rec.uv.y))
                     .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0));
@@ -175,7 +188,7 @@ impl Scatterable for Principle {
             if Principle::reflectance(cos_theta, refraction_ratio)> random_float() && spec_mult {
                 lobe = "specular";
                 direction = Vec3::reflect(unit_direction, rec.normal)
-                    + Vec3::random_unit_vector() * self.roughness;
+                    + Vec3::random_unit_vector() * roughness;
                 attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
             }
             let scattered = Ray::new(rec.point, direction, r_in.time);

@@ -61,7 +61,6 @@ impl Tri {
                 } else {
                     normal = (&edge1).cross(&edge2).unit_vector();
                 }
-                normal = (&edge1).cross(&edge2).unit_vector();
                 let front_face = normal.dot(&r.direction) < 0.0;
                 return (true,
                 Some(HitRecord {
@@ -92,25 +91,5 @@ impl Tri {
         let max = Vec3::new(max_x, max_y, max_z);
         Aabb::new(min, max)
     }
-
-    fn get_texture_color2(&self, point: &Vec3) -> Color {
-        let (v0, v1, v2) = (self.vertices[0], self.vertices[1], self.vertices[2]);
-        let edge1 = v1 - v0;
-        let edge2 = v2 - v0;
-        let v = *point - v0;
-        let u = (v.dot(&edge2) * edge1.length_squared() - v.dot(&edge1) * edge2.dot(&edge1)) / (edge1.length_squared() * edge2.length_squared() - edge1.dot(&edge2).powi(2));
-        let v = (v.dot(&edge1) * edge2.length_squared() - v.dot(&edge2) * edge1.dot(&edge2)) / (edge1.length_squared() * edge2.length_squared() - edge1.dot(&edge2).powi(2));
-        let w = 1.0 - u - v;
-    
-        let uv0 = self.uvs[0];
-        let uv1 = self.uvs[1];
-        let uv2 = self.uvs[2];
-        let tex_coord = uv0 * w + uv1 * u + uv2 * v;
-    
-        let texture = TextureMap::new("texture_test.jpg");
-        texture.sample(tex_coord.x, tex_coord.y)
-    }
-
-
 }
 

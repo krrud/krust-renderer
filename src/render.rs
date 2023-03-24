@@ -46,7 +46,7 @@ pub fn ray_color(r: &Ray, world: &Object, depth: u32, progressive: bool) -> Lobe
     let gradient_color = Color::new(0.3, 0.45, 0.1, 0.0);
     let gradient = Color::black() * (1.0 - t) + gradient_color * t;
     return Lobes {
-        beauty: Color::new(0.7,0.7,0.7,0.0),
+        beauty: Color::new(0.0,0.0,0.0,0.0),
         diffuse: Color::black(),
         specular: Color::black(),
         albedo: Color::black(), 

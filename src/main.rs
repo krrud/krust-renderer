@@ -143,6 +143,7 @@ fn main() {
             metallic,
             refraction,
             emissive,
+            None,
             None
         ));
         scene_materials.insert(name, Arc::new(material));
@@ -262,7 +263,7 @@ fn main() {
             data["scene"]["spheres"][obj as usize]["radius"]
                 .as_f64()
                 .unwrap(),
-            default_material.clone()//scene_materials.get(material_name).unwrap().clone()
+            scene_materials.get(material_name).unwrap().clone()
         ));
         world.objects.push(Arc::new(new_sphere));
     }
