@@ -24,7 +24,7 @@ pub struct Bvh {
 }
 
 impl Bvh { 
-    pub fn new(objects: Vec<Arc<Object>>, time0: f64, time1: f64) -> Bvh {
+    pub fn new(objects: &mut [Arc<Object>], time0: f64, time1: f64) -> Bvh {
         let mut lbox = Aabb::empty();
         let mut rbox = Aabb::empty();
         let mut bbox = Aabb::empty();
@@ -46,7 +46,7 @@ impl Bvh {
         else if span == 1 { 
             left = objects[0].clone();
             right = objects[0].clone();
-            bbox = Aabb::surrounding_box(left.bounding_box(0.0,1.0), right.bounding_box(0.0,1.0));
+            bbox = left.bounding_box(0.0,1.0);
         } 
         else if span == 2 {        
             let l = objects[0].clone();
@@ -60,27 +60,20 @@ impl Bvh {
                 right = l;
             }      
         } else {
-            let mut sorted = objects.clone();
-            sorted.par_sort_by(|a, b| {
+            objects.sort_by(|a, b| {
                 if comparator(a, b) {Ordering::Less}
                 else {Ordering::Greater}
             });
-            let left_obj = sorted[..mid].to_vec();
-            let right_obj = sorted[mid..].to_vec();
-            (left, right) = {
-                let left_thread = thread::spawn(move || Object::Bvh(Bvh::new(left_obj, time0, time1)));
-                let right_thread = thread::spawn(move || Object::Bvh(Bvh::new(right_obj, time0, time1)));
-                let l = left_thread.join().unwrap();
-                let r = right_thread.join().unwrap();
-                (Arc::new(l), Arc::new(r))
-            };            
+            let (left_slice, right_slice) = objects.split_at_mut(mid);
+            left = Arc::new(Object::Bvh(Bvh::new(left_slice, time0, time1)));
+            right = Arc::new(Object::Bvh(Bvh::new(right_slice, time0, time1)));
             lbox = left.bounding_box(time0, time1);
             rbox = right.bounding_box(time0, time1);
             bbox = Aabb::surrounding_box(lbox, rbox);
         }
 
         Bvh {
-            objects,
+            objects: objects.to_vec(),
             time0, 
             time1,
             left,
@@ -118,7 +111,7 @@ impl Bvh {
         self.bbox
     }
 
-    pub fn box_compare(a: &Arc<Object>, b: &Arc<Object>, axis: i32) -> bool {
+    pub fn box_compare(a: &Arc<Object>, b: &Arc<Object>, axis: usize) -> bool {
         let box_a = a.bounding_box(0.0, 0.0);
         let box_b = b.bounding_box(0.0, 0.0);
         if axis == 0 {

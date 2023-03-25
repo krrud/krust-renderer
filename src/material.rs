@@ -105,7 +105,7 @@ impl Principle {
             metallic: 0.0,
             refraction: 0.0,
             emissive: Color::black(),
-            diffuse_texture: Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_color.tga", true)),
+            diffuse_texture: Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_color.tga", true)),//Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_color.tga", true)),
             roughness_texture: Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_roughness.png", true)),
         }
     }

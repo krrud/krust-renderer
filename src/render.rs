@@ -12,9 +12,15 @@ use std::sync::{Arc, Mutex, RwLock};
 use crate::utility::{random_float, INF};
 use crate::hit::{HitRecord, HittableList, Object, Hittable};
 use crate::material::Scatterable;
+use std::f64::consts::PI;
+use crate::texture::TextureMap;
 
 
-pub fn ray_color(r: &Ray, world: &Object, depth: u32, progressive: bool) -> Lobes {
+pub fn ray_color(   
+    r: &Ray, world: &Object, depth: u32, 
+    max_depth: u32, progressive: bool, 
+    skydome: Option<Arc<TextureMap>>, hide_skydome: bool
+    ) -> Lobes {
     if depth <= 0 {
         return Lobes {
             beauty:  Color::black(),
@@ -28,7 +34,7 @@ pub fn ray_color(r: &Ray, world: &Object, depth: u32, progressive: bool) -> Lobe
         if let Some((scattered_ray, albedo, lobe, emit)) = hit_rec.material.scatter(&r, &hit_rec) {
             if let Some(sr) = scattered_ray {
                 let emission = if hit_rec.front_face {emit} else {Color::black()};
-                let rc = ray_color(&sr, &world, depth - 1, progressive);
+                let rc = ray_color(&sr, &world, depth - 1, max_depth, progressive, skydome, hide_skydome);
                 return Lobes {
                     beauty: emit + (albedo * rc.beauty),
                     diffuse: if lobe == "diffuse" {albedo * rc.beauty} else {Color::black()},
@@ -39,18 +45,50 @@ pub fn ray_color(r: &Ray, world: &Object, depth: u32, progressive: bool) -> Lobe
             }
         }
     }
+    match skydome {
+        Some(ref sky) => {
+            let unit_direction = Vec3::unit_vector(&r.direction);
+            let rotation_degrees: f64 = 45.0;
+            let rotation_radians = rotation_degrees.to_radians();
+            let phi = unit_direction.z.atan2(unit_direction.x) + rotation_radians;
+            let theta = (-unit_direction.y).asin();
+            let u = 1.0 - (phi + PI) / (2.0 * PI);
+            let v = 1.0 - (theta + PI / 2.0) / PI;        
+            let hdr_color = sky.sample(u as f32, v as f32);
 
-    // background
-    let unit_direction = Vec3::unit_vector(&r.direction);
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    let gradient_color = Color::new(0.3, 0.45, 0.1, 0.0);
-    let gradient = Color::black() * (1.0 - t) + gradient_color * t;
-    return Lobes {
-        beauty: Color::new(0.0,0.0,0.0,0.0),
-        diffuse: Color::black(),
-        specular: Color::black(),
-        albedo: Color::black(), 
-        emission: Color::black(),
+            if depth == max_depth && hide_skydome {
+                return Lobes {
+                    beauty: Color::black(),
+                    diffuse: Color::black(),
+                    specular: Color::black(),
+                    albedo: Color::black(), 
+                    emission: Color::black()
+            }
+            } else {
+                return Lobes {
+                    beauty: hdr_color,
+                    diffuse: Color::black(),
+                    specular: Color::black(),
+                    albedo: Color::black(), 
+                    emission: Color::black(),
+                }
+            }
+  
+        },
+        None => {
+
+            let unit_direction = Vec3::unit_vector(&r.direction);
+            let t = 0.5 * (unit_direction.y() + 1.0);
+            let gradient_color = Color::new(0.3, 0.45, 0.1, 0.0);
+            let gradient = Color::black() * (1.0 - t) + gradient_color * t;
+            return Lobes {
+                beauty: Color::new(0.5,0.5,0.5,0.0),
+                diffuse: Color::black(),
+                specular: Color::black(),
+                albedo: Color::black(), 
+                emission: Color::black(),
+            }
+        }
     }
 }
 
@@ -68,7 +106,10 @@ pub fn render_pixel(
     camera: &Arc<Camera>,
     bvh: &Object,
     depth: u32,
+    max_depth: u32,
     progressive: bool,
+    skydome: Option<Arc<TextureMap>>,
+    hide_skydome: bool,
     ) -> () {
         
         // get existing rgba vals
@@ -96,7 +137,7 @@ pub fn render_pixel(
         let u = (x as f64 + random_float()) / ((width - 1) as f64);
         let v = 1.0 - ((y as f64 + random_float()) / ((height - 1) as f64));
         let r = camera.get_ray(u, v);
-        let ray_sample = ray_color(&r, bvh, depth, progressive);
+        let ray_sample = ray_color(&r, bvh, depth, max_depth, progressive, skydome, hide_skydome);
         let mut rgba_color = ray_sample.beauty;
         let mut diff_color = ray_sample.diffuse;
         let mut spec_color = ray_sample.specular;

@@ -149,6 +149,7 @@ fn main() {
         scene_materials.insert(name, Arc::new(material));
     }
 
+    let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/texture_sky_sunset.exr", false));
     let default_material =  Arc::new(Material::Principle(Principle::texture_test()));
     println!("Processing meshes...");
     // get tris
@@ -323,7 +324,7 @@ fn main() {
     let world_size = &world.objects.len();
 
     println!("Processing BVH..."); 
-    let world_bvh = Arc::new(Object::Bvh(Bvh::new(world.objects, 0.0, 1.0)));
+    let world_bvh = Arc::new(Object::Bvh(Bvh::new(&mut world.objects, 0.0, 1.0)));
 
 
     println!("Rendering scene...");
@@ -363,6 +364,7 @@ fn main() {
                 let buffer_diff = buffer_diffuse.clone();
                 let buffer_spec = buffer_specular.clone();
                 let preview = preview.clone();
+                let sky = skydome_texture.clone();
                 threads.push(                    
                     thread::spawn( move || {          
                         for x in &thread_chunks[index as usize-1] {
@@ -379,7 +381,10 @@ fn main() {
                                 &camera, 
                                 &world_bvh, 
                                 depth, 
-                                progressive
+                                depth,
+                                progressive,
+                                Some(sky.clone()),
+                                false
                             );
                         }
                     })
@@ -393,6 +398,7 @@ fn main() {
             let camera = camera.clone();
             let world_bvh = world_bvh.clone();
             let thread_chunks = thread_chunks.clone();
+            let sky = skydome_texture.clone();
             for x in &thread_chunks[0] {
                 render_pixel(
                     *x as u32, 
@@ -407,7 +413,10 @@ fn main() {
                     &camera, 
                     &world_bvh, 
                     depth, 
-                    progressive
+                    depth,
+                    progressive,
+                    Some(sky.clone()),
+                    false
                 );
             }
             for thread in threads {
