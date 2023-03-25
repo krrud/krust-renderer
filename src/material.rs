@@ -40,73 +40,86 @@ impl Emits for Material {
 
 #[derive(Debug, Clone)]
 pub struct Principle {
-    pub albedo: Color,
-    pub spec: f64,
-    pub ior: f64,
+    pub diffuse: Color,
+    pub diffuse_weight: f64,
+    pub specular: Color,
+    pub specular_weight: f64,
     pub roughness: f64,
-    pub diffuse: f64,
+    pub ior: f64,
     pub metallic: f64,
     pub refraction: f64,
-    pub emissive: Color,
+    pub emission: Color,
     pub diffuse_texture: Option<TextureMap>,
-    pub roughness_texture: Option<TextureMap>
+    pub diffuse_weight_texture: Option<TextureMap>,
+    pub specular_texture: Option<TextureMap>,
+    pub specular_weight_texture: Option<TextureMap>,
+    pub roughness_texture: Option<TextureMap>,
+    pub metallic_texture: Option<TextureMap>,
+    pub refraction_texture: Option<TextureMap>,
+    pub emission_texture: Option<TextureMap>,
 }
 
 impl Principle {
     pub fn new(
-        albedo: Color,
-        spec: f64,
-        ior: f64,
+        diffuse: Color,
+        diffuse_weight: f64,
+        specular: Color,
+        specular_weight: f64,
         roughness: f64,
-        diffuse: f64,
+        ior: f64,
         metallic: f64,
         refraction: f64,
-        emissive: Color,
+        emission: Color,
         diffuse_texture: Option<TextureMap>,
-        roughness_texture: Option<TextureMap>
+        diffuse_weight_texture: Option<TextureMap>,
+        specular_texture: Option<TextureMap>,
+        specular_weight_texture: Option<TextureMap>,
+        roughness_texture: Option<TextureMap>,
+        metallic_texture: Option<TextureMap>,
+        refraction_texture: Option<TextureMap>,
+        emission_texture: Option<TextureMap>,
         
     ) -> Principle {
         Principle {
-            albedo,
-            spec,
-            ior,
-            roughness,
             diffuse,
+            diffuse_weight,
+            specular,
+            specular_weight,
+            roughness,
+            ior,
             metallic,
             refraction,
-            emissive,
+            emission,
             diffuse_texture,
-            roughness_texture
+            diffuse_weight_texture,
+            specular_texture,
+            specular_weight_texture,
+            roughness_texture,
+            metallic_texture,
+            refraction_texture,
+            emission_texture
         }
     }
 
     pub fn default() -> Self {
         Self {
-            albedo: Color::black(),
-            spec: 1.0,
-            ior: 1.5,
+            diffuse: Color::black(),
+            diffuse_weight: 1.0,
+            specular: Color::white(),
+            specular_weight: 1.0,
             roughness: 0.5,
-            diffuse: 1.0,
-            metallic: 0.0,
-            refraction: 0.0,
-            emissive: Color::black(),
-            diffuse_texture: None,
-            roughness_texture: None,
-        }
-    }
-
-    pub fn texture_test() -> Self {
-        Self {
-            albedo: Color::black(),
-            spec: 1.0,
             ior: 1.5,
-            roughness: 0.3,
-            diffuse: 1.0,
             metallic: 0.0,
             refraction: 0.0,
-            emissive: Color::black(),
-            diffuse_texture: Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_color.tga", true)),//Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_color.tga", true)),
-            roughness_texture: Some(TextureMap::new("g:/rust_projects/krrust/textures/crab/crab_roughness.png", true)),
+            emission: Color::black(),
+            diffuse_texture: None,
+            diffuse_weight_texture: None,
+            specular_texture: None,
+            specular_weight_texture: None,
+            roughness_texture: None,
+            metallic_texture: None,
+            refraction_texture: None,
+            emission_texture: None
         }
     }
     
@@ -119,19 +132,81 @@ impl Principle {
 
 impl Emits for Principle {
     fn emit(&self) -> Color {
-        self.emissive
+        self.emission
     }
 }
 
 impl Scatterable for Principle {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Option<Ray>, Color, String, Color)> {
+        // sample textures if available
+        let mut diffuse = self.diffuse;
+        if let Some(d) = &self.diffuse_texture {
+            diffuse = self.diffuse_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0));
+        } 
+
+        let mut diffuse_weight = self.diffuse_weight;
+        if let Some(dwt) = &self.diffuse_weight_texture {
+            diffuse_weight = self.diffuse_weight_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+        } 
+
+        let mut specular = self.specular;
+        if let Some(st) = &self.specular_texture {
+            specular = self.specular_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0));
+        } 
+
+        let mut specular_weight = self.specular_weight;
+        if let Some(swt) = &self.specular_weight_texture {
+            specular_weight = self.specular_weight_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+        }
+        
         let mut roughness = self.roughness;
-        if let Some(roughness_texture) = &self.roughness_texture {
+        if let Some(rt) = &self.roughness_texture {
             roughness = self.roughness_texture
                 .as_ref()
                 .map(|t| t.sample(rec.uv.x, rec.uv.y))
                 .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
         } 
+
+        let mut metallic = self.metallic;
+        if let Some(mt) = &self.metallic_texture {
+            metallic = self.metallic_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+        } 
+
+        let mut refraction = self.refraction;
+        if let Some(rft) = &self.refraction_texture {
+            refraction = self.refraction_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+        } 
+
+        let mut emission = self.emission;
+        if let Some(et) = &self.emission_texture {
+            emission = self.emission_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0));
+        } 
+
+        // clip invalid weights
+        diffuse_weight = f64::max(f64::min(diffuse_weight, 1.0), 0.0);
+        specular_weight = f64::max(f64::min(specular_weight, 1.0), 0.0);
+
         let roll = random_float();
         let unit_direction = Vec3::unit_vector(&r_in.direction);
         let cos_theta = f64::min(Vec3::dot(&(unit_direction * -1.0), &rec.normal), 1.0);
@@ -145,57 +220,51 @@ impl Scatterable for Principle {
         } else {
             self.ior
         };
-        if 1.0 - self.metallic < roll {
+        // metallic
+        if 1.0 - metallic < roll {
             let reflected = Vec3::reflect(unit_direction, rec.normal);
             let scattered = Ray::new(
                 rec.point,
-                reflected + Vec3::random_unit_vector() * self.roughness,
+                reflected + Vec3::random_unit_vector() * roughness,
                 r_in.time,
             );
-            let attenuation = self.albedo;
+            let attenuation = diffuse;
             if Vec3::dot(&scattered.direction, &rec.normal) > 0.0 {
-                return Some((Some(scattered), attenuation, "specular".to_string(), self.emissive));
+                return Some((Some(scattered), attenuation, "specular".to_string(), emission));
             } else {
                 return None;
             }
         }
-        if 1.0 - self.refraction < roll {
+        // refraction
+        if 1.0 - refraction < roll {
             let cannot_refract: bool = sin_theta * refraction_ratio > 1.0;
             let mut direction: Vec3;
             if cannot_refract
-                || Principle::reflectance(cos_theta, refraction_ratio) > random_float()
+                || Principle::reflectance(cos_theta, refraction_ratio) > roll
             {
                 direction = Vec3::reflect(unit_direction, rec.normal);
             } else {
                 direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
-                    + Vec3::random_unit_vector() * self.roughness;
+                            + Vec3::random_unit_vector() * roughness;
             }
             let scattered = Ray::new(rec.point, direction, r_in.time);
             let attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
-            return Some((Some(scattered), attenuation, "refraction".to_string(), self.emissive));
-        }
-        if 1.0 - self.diffuse < roll {
+            return Some((Some(scattered), attenuation, "refraction".to_string(), emission));
+        } else {
+            // diffuse and specular
             let mut lobe = "diffuse";
-            let mut attenuation = self.albedo;
-            if let Some(diffuse_texture) = &self.diffuse_texture {
-                attenuation = self.diffuse_texture
-                    .as_ref()
-                    .map(|t| t.sample(rec.uv.x, rec.uv.y))
-                    .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0));
-            } 
+            let mut attenuation = diffuse * diffuse_weight; 
             let mut direction: Vec3 = rec.normal + Vec3::random_unit_vector();
-            let spec_mult = random_float() <= self.spec;
-            if Principle::reflectance(cos_theta, refraction_ratio)> random_float() && spec_mult {
+            let spec_mult = roll <= specular_weight;
+            if Principle::reflectance(cos_theta, refraction_ratio)> roll && spec_mult {
                 lobe = "specular";
                 direction = Vec3::reflect(unit_direction, rec.normal)
-                    + Vec3::random_unit_vector() * roughness;
-                attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
+                            + Vec3::random_unit_vector() * roughness;
+                attenuation = specular;
             }
             let scattered = Ray::new(rec.point, direction, r_in.time);
-            Some((Some(scattered), attenuation, lobe.to_string(), self.emissive))
-        } else {
-            None
-        }
+            Some((Some(scattered), attenuation, lobe.to_string(), emission))
+        } 
     }
 }
 

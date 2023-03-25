@@ -9,19 +9,19 @@ use std::mem;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Aabb {
-    pub minimum: Vec3,
-    pub maximum: Vec3,
+    pub min: Vec3,
+    pub max: Vec3,
 }
 
 impl Aabb {
-    pub fn new(minimum: Vec3, maximum: Vec3) -> Aabb {
-        Aabb { minimum, maximum }
+    pub fn new(min: Vec3, max: Vec3) -> Aabb {
+        Aabb { min, max }
     }
 
     pub fn empty() -> Aabb {
         Aabb {
-            minimum: Vec3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY),
-            maximum: Vec3::new(f64::NEG_INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY),
+            min: Vec3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY),
+            max: Vec3::new(f64::NEG_INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY),
         }
     }
 
@@ -31,18 +31,31 @@ impl Aabb {
 
     pub fn surrounding_box(box0: Aabb, box1: Aabb) -> Aabb {
         let small = Vec3::new(
-            f64::min(box0.minimum.x, box1.minimum.x),
-            f64::min(box0.minimum.y, box1.minimum.y),
-            f64::min(box0.minimum.z, box1.minimum.z),
+            f64::min(box0.min.x, box1.min.x),
+            f64::min(box0.min.y, box1.min.y),
+            f64::min(box0.min.z, box1.min.z),
         );
 
         let big = Vec3::new(
-            f64::max(box0.maximum.x, box1.maximum.x),
-            f64::max(box0.maximum.y, box1.maximum.y),
-            f64::max(box0.maximum.z, box1.maximum.z),
+            f64::max(box0.max.x, box1.max.x),
+            f64::max(box0.max.y, box1.max.y),
+            f64::max(box0.max.z, box1.max.z),
         );
 
         Aabb::new(small, big)
+    }
+
+    pub fn longest_axis(&self) -> usize {
+        let dx = self.max.x - self.min.x;
+        let dy = self.max.y - self.min.y;
+        let dz = self.max.z - self.min.z;
+        if dx > dy && dx > dz {
+            0
+        } else if dy > dz {
+            1
+        } else {
+            2
+        }
     }
 
     pub fn hit(&self, r: &Ray, mut t_min: f64, mut t_max: f64) -> (bool, Option<HitRecord>) {
@@ -54,18 +67,18 @@ impl Aabb {
             if a == 0 {
                 origin = r.origin.x;
                 direction = r.direction.x;
-                min = self.minimum.x;
-                max = self.maximum.x;
+                min = self.min.x;
+                max = self.max.x;
             } else if a == 1 {
                 origin = r.origin.y;
                 direction = r.direction.y;
-                min = self.minimum.y;
-                max = self.maximum.y;
+                min = self.min.y;
+                max = self.max.y;
             } else {
                 origin = r.origin.z;
                 direction = r.direction.z;
-                min = self.minimum.z;
-                max = self.maximum.z;
+                min = self.min.z;
+                max = self.max.z;
             }
             let inv_d = 1.0 / direction;
             let mut t0 = (min - origin) * inv_d;

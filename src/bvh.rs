@@ -31,12 +31,6 @@ impl Bvh {
         let mut left = Arc::new(Object::empty());
         let mut right = Arc::new(Object::empty());
         
-        let axis = random_int(0.0, 2.0);
-        let comparator = 
-        if axis == 0 {Bvh::box_x_compare} 
-        else if axis == 1 {Bvh::box_y_compare}
-        else {Bvh::box_z_compare};
-
         let span = objects.len();
         let mid = span / 2;
 
@@ -52,6 +46,7 @@ impl Bvh {
             let l = objects[0].clone();
             let r = objects[1].clone();
             bbox = Aabb::surrounding_box(l.bounding_box(0.0,1.0), r.bounding_box(0.0,1.0));
+            let comparator = Bvh::get_comparator(&bbox);
             if comparator(&l, &r) {
                 left = l;
                 right = r;
@@ -60,7 +55,13 @@ impl Bvh {
                 right = l;
             }      
         } else {
-            objects.sort_by(|a, b| {
+            bbox = objects[0].bounding_box(0.0, 1.0);
+            for i in 1..span {
+                bbox = Aabb::surrounding_box(bbox, objects[i].bounding_box(0.0, 1.0));
+            }
+            let comparator = Bvh::get_comparator(&bbox);
+
+            objects.par_sort_by(|a, b| {
                 if comparator(a, b) {Ordering::Less}
                 else {Ordering::Greater}
             });
@@ -115,11 +116,11 @@ impl Bvh {
         let box_a = a.bounding_box(0.0, 0.0);
         let box_b = b.bounding_box(0.0, 0.0);
         if axis == 0 {
-            return box_a.minimum.x < box_b.minimum.x;
+            return box_a.min.x < box_b.min.x;
         } else if axis == 1 {
-            return box_a.minimum.y < box_b.minimum.y;
+            return box_a.min.y < box_b.min.y;
         } else {
-            return box_a.minimum.z < box_b.minimum.z;
+            return box_a.min.z < box_b.min.z;
         }
     }
         
@@ -134,5 +135,12 @@ impl Bvh {
     pub fn box_z_compare (a: &Arc<Object>, b: &Arc<Object>) -> bool {
         return Bvh::box_compare(&a, &b, 2);
     }
-}
 
+    pub fn get_comparator(bbox: &Aabb) -> fn(&Arc<Object>, &Arc<Object>) -> bool {
+        let axis = bbox.longest_axis();
+        let comparator = 
+        if axis == 0 {return Bvh::box_x_compare} 
+        else if axis == 1 {return Bvh::box_y_compare}
+        else {return Bvh::box_z_compare};
+    }
+}

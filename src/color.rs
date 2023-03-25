@@ -12,7 +12,7 @@ impl Color {
     }
 
     pub fn black() -> Self {
-        Self::new(0.0, 0.0, 0.0, 1.0)
+        Self::new(0.0, 0.0, 0.0, 0.0)
     }
 
     pub fn white() -> Self {
@@ -89,6 +89,19 @@ impl std::ops::Div<f64> for Color {
             g: self.g / rhs,
             b: self.b / rhs,
             a: self.a
+        }
+    }
+}
+
+impl std::ops::Div<u32> for Color {
+    type Output = Color;
+
+    fn div(self, rhs: u32) -> Color {
+        Color {
+            r: self.r / rhs as f64,
+            g: self.g / rhs as f64,
+            b: self.b / rhs as f64,
+            a: self.a / rhs as f64,
         }
     }
 }

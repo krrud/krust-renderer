@@ -5,7 +5,7 @@ use crate::vec3::Vec3;
 use crate::color::Color;
 use crate::aabb::Aabb;
 use crate::buffers::{Lobes, FrameBuffers};
-use image::{ImageBuffer, Rgb, Rgba, RgbImage, Rgb32FImage, Rgba32FImage};
+use image::{ImageBuffer, Rgb, Rgba, RgbImage, RgbaImage, Rgb32FImage, Rgba32FImage};
 use std::io::Write;
 use std::{env, fs, thread};
 use std::sync::{Arc, Mutex, RwLock};
@@ -19,7 +19,7 @@ use crate::texture::TextureMap;
 pub fn ray_color(   
     r: &Ray, world: &Object, depth: u32, 
     max_depth: u32, progressive: bool, 
-    skydome: Option<Arc<TextureMap>>, hide_skydome: bool
+    skydome: &Option<Arc<TextureMap>>, hide_skydome: bool
     ) -> Lobes {
     if depth <= 0 {
         return Lobes {
@@ -102,13 +102,13 @@ pub fn render_pixel(
     buffer_rgba: &Arc<RwLock<Rgba32FImage>>,
     buffer_diff: &Arc<RwLock<Rgba32FImage>>,
     buffer_spec: &Arc<RwLock<Rgba32FImage>>,
-    preview: &Arc<RwLock<RgbImage>>,
+    preview: &Arc<RwLock<RgbaImage>>,
     camera: &Arc<Camera>,
     bvh: &Object,
     depth: u32,
     max_depth: u32,
     progressive: bool,
-    skydome: Option<Arc<TextureMap>>,
+    skydome: &Option<Arc<TextureMap>>,
     hide_skydome: bool,
     ) -> () {
         
@@ -145,9 +145,9 @@ pub fn render_pixel(
         // average in new sample for each lobe
         if sample > &0 {
             let average = (sample + 1) as f64;
-            rgba_color = (ray_sample.beauty + (previous_rgba * *sample as f64)) /  average;
-            diff_color = (ray_sample.diffuse + (previous_diff * *sample as f64)) /  average;
-            spec_color = (ray_sample.specular + (previous_spec * *sample as f64)) /  average;
+            rgba_color = (rgba_color + (previous_rgba * *sample as f64)) /  average;
+            diff_color = (diff_color + (previous_diff * *sample as f64)) /  average;
+            spec_color = (spec_color + (previous_spec * *sample as f64)) /  average;
         }
 
         // update rgba buffer
@@ -186,10 +186,11 @@ pub fn render_pixel(
         // update preview
         let mut preview_buffer = preview.write().unwrap();
         preview_buffer.put_pixel(x,y,
-            Rgb([
+            Rgba([
                 (rgba_color.r.sqrt() * 255.999) as u8,
                 (rgba_color.g.sqrt() * 255.999) as u8,
                 (rgba_color.b.sqrt() * 255.999) as u8,
+                (rgba_color.a * 255.999) as u8,
             ]),
         );
         drop(preview_buffer);

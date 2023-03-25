@@ -1,20 +1,3 @@
-mod camera;
-mod hit;
-mod material;
-mod ray;
-mod sphere;
-mod tri;
-// mod trimesh;
-mod utility;
-mod vec3;
-mod vec2;
-mod aabb;
-mod bvh;
-mod color;
-mod buffers;
-mod render;
-mod texture;
-extern crate num_cpus;
 use crate::render::{render_pixel, ray_color};
 use crate::bvh::Bvh;
 use crate::camera::Camera;
@@ -29,25 +12,26 @@ use crate::vec2::Vec2;
 use crate::color::Color;
 use crate::aabb::Aabb;
 use crate::buffers::{Lobes, FrameBuffers};
-use image::{DynamicImage, ImageBuffer, Rgb, Rgba, RgbImage, RgbaImage, Rgb32FImage, Rgba32FImage};
+use image::{DynamicImage, ImageBuffer, Rgb, Rgba, RgbImage, Rgb32FImage, Rgba32FImage};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde_json::{Result, Value};
 use show_image::{create_window, ImageInfo, ImageView, WindowOptions};
-use std::io::Write;
 use std::collections::HashMap;
-use std::time::Duration;
 use std::{env, fs, thread};
 use std::sync::{Arc, Mutex, RwLock};
-use std::mem::drop;
 use crate::texture::TextureMap;
+use std::io::Write;
 
-
-#[show_image::main]
-fn main() {
-
+pub fn process_scene(scene_file: &str) -> 
+    (Camera, u16, u32, u32, u32, bool, Arc<Object>, Arc<TextureMap>, str, str, 
+    Arc<RwLock<Rgba32FImage>>, Arc<RwLock<Rgba32FImage>>, Arc<RwLock<Rgba32FImage>>, RgbImage) {
     print!("Processing scene...");
-    let data = fs::read_to_string("render_data.json").expect("Unable to read render data.");
-    // let data = fs::read_to_string("./src/scenes/roughness_wedge.json").expect("Unable to read render data."); 
+    let scene = if scene_file.is_empty() {
+        "render_data.json"
+    } else {
+        scene_file
+    };
+    let data = fs::read_to_string(scene).expect("Unable to read render data.");
     let data: serde_json::Value = serde_json::from_str(&data).expect("Incorrect JSON format.");
 
     // render settings
@@ -85,7 +69,7 @@ fn main() {
     ));
     let spp: u16 = data["settings"]["spp"].as_u64().unwrap() as u16;
     let depth: u32 = data["settings"]["depth"].as_u64().unwrap() as u32;
-    let preview: RgbaImage = ImageBuffer::new(width, height);
+    let preview: RgbImage = ImageBuffer::new(width, height);
     let buffer_rgba: Arc<RwLock<Rgba32FImage>> = Arc::new(RwLock::new(ImageBuffer::new(width, height)));
     let buffer_diffuse: Arc<RwLock<Rgba32FImage>> = Arc::new(RwLock::new(ImageBuffer::new(width, height)));
     let buffer_specular: Arc<RwLock<Rgba32FImage>> = Arc::new(RwLock::new(ImageBuffer::new(width, height)));
@@ -389,120 +373,6 @@ fn main() {
     println!("Processing BVH..."); 
     let world_bvh = Arc::new(Object::Bvh(Bvh::new(&mut world.objects, 0.0, 1.0)));
 
-
-    println!("Rendering scene...");
-    //----------------------------------------------------------------------------------
-    //----------------------------------------------------------------------------------
-    // PROGRESSIVE RENDERER 32-BIT
-    //----------------------------------------------------------------------------------
-    //----------------------------------------------------------------------------------
-    let progress = ProgressBar::new((spp - 1) as u64).with_message("%...");
-    progress.set_style(
-        ProgressStyle::with_template("[{elapsed_precise}] {bar:40.gray} {percent}{msg}")
-            .unwrap(),
-    );
-
-    // create pixel chunks for threads
-    let thread_count = num_cpus::get() as u32;
-    let width_vec: Arc<Vec<usize>> = Arc::new((0usize..width as usize).collect::<Vec<_>>());
-    let mut chunks = Vec::new();
-    let chunk_size = (width + thread_count - 1) / thread_count;
-    for chunk in width_vec.chunks(chunk_size as usize) {
-        chunks.push(chunk.to_owned());
-    }
-    let thread_chunks = Arc::new(chunks);
-
-    for sample in 0..(spp / 4) {
-        if sample != 0 {
-            progress.inc(1);
-        } 
-        for y in 0..height {
-            // spawn threads and render chunks
-            let mut threads:Vec<thread::JoinHandle<()>> = Vec::new();   
-            for index in 2..thread_count+1 {
-                let thread_chunks = thread_chunks.clone();
-                let camera = camera.clone();
-                let world_bvh = world_bvh.clone();
-                let buffer_rgba = buffer_rgba.clone();
-                let buffer_diff = buffer_diffuse.clone();
-                let buffer_spec = buffer_specular.clone();
-                let preview = preview.clone();
-                let sky = skydome_texture.clone();
-                threads.push(                    
-                    thread::spawn( move || {          
-                        for x in &thread_chunks[index as usize-1] {
-                            render_pixel(
-                                *x as u32, 
-                                y, 
-                                &height, 
-                                &width, 
-                                &sample, 
-                                &buffer_rgba, 
-                                &buffer_diff, 
-                                &buffer_spec, 
-                                &preview, 
-                                &camera, 
-                                &world_bvh, 
-                                depth, 
-                                depth,
-                                progressive,
-                                &Some(sky.clone()),
-                                false
-                            );
-                        }
-                    })
-                )
-            }     
-            // main thread - renders first horizontal chunk
-            let buffer_rgba = buffer_rgba.clone();
-            let buffer_diff = buffer_diffuse.clone();
-            let buffer_spec = buffer_specular.clone();
-            let preview = preview.clone();
-            let camera = camera.clone();
-            let world_bvh = world_bvh.clone();
-            let thread_chunks = thread_chunks.clone();
-            let sky = skydome_texture.clone();
-            for x in &thread_chunks[0] {
-                render_pixel(
-                    *x as u32, 
-                    y, 
-                    &height, 
-                    &width, 
-                    &sample, 
-                    &buffer_rgba, 
-                    &buffer_diff, 
-                    &buffer_spec, 
-                    &preview, 
-                    &camera, 
-                    &world_bvh, 
-                    depth, 
-                    depth,
-                    progressive,
-                    &Some(sky.clone()),
-                    false
-                );
-            }
-            for thread in threads {
-                thread.join();
-            }
-        }
-        let buffer = buffer_rgba.write().unwrap();
-        buffer.save(&output);
-        drop(buffer);
-        let preview_buffer = preview.read().unwrap();
-        let render_view = ImageView::new(ImageInfo::rgba8(width, height), &preview_buffer);
-        window
-            .as_ref()
-            .expect("REASON")
-            .set_image("image-001", render_view);
-        drop(preview_buffer);
-        let preview_buffer = preview.write().unwrap();
-        preview_buffer.save(&preview_output);
-        drop(preview_buffer);
-    }
-    let buffer = buffer_rgba.write().unwrap();
-    buffer.save(&output);
-    drop(buffer);
-    ProgressBar::finish_with_message(&progress, "% Render complete")
-
+    (camera, spp, width, height, depth, progressive, world_bvh, skydome_texture, output, preview_output, 
+    buffer_rgba, buffer_diffuse, buffer_specular, preview)
 }
