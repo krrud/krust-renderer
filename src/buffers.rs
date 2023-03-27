@@ -3,6 +3,8 @@ use std::sync::{Arc, Mutex, RwLock};
 use crate::color::Color;
 use std::ops;
 
+
+#[derive(Debug, Clone, Copy)]
 pub struct Lobes {
     pub beauty: Color,
     pub diffuse: Color,

@@ -124,6 +124,10 @@ impl Vec3 {
         v - (n * Vec3::dot(&v, &n)) * 2.0
     }
 
+    pub fn reflect2(incident: Vec3, normal: Vec3) -> Vec3 {
+        incident - 2.0 * incident.dot(&normal) * normal
+    }
+
     pub fn refract(uv: &Vec3, n: &Vec3, etai_over_etat: f64) -> Vec3 {
         let neg_uv = *uv*-1.0;
         let cos_theta = f64::min(Vec3::dot(&neg_uv, n), 1.0);
@@ -216,6 +220,17 @@ impl ops::Mul<f64> for Vec3 {
             x: self.x * other,
             y: self.y * other,
             z: self.z * other,
+        }
+    }
+}
+
+impl ops::Mul<Vec3> for f64 {
+    type Output = Vec3;
+    fn mul(self, other: Vec3) -> Vec3 {
+        Vec3 {
+            x: other.x * self,
+            y: other.y * self,
+            z: other.z * self,
         }
     }
 }

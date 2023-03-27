@@ -26,6 +26,17 @@ impl Color {
     pub fn green() -> Self {
         Self::new(0.0, 1.0, 0.0, 1.0)
     }
+
+    pub fn sum(&self) -> f64 {
+        self.r + self.g + self.b
+    }
+
+    pub fn has_nan(&self) -> bool {
+        if self.r.is_nan() || self.g.is_nan() || self.b.is_nan() || self.a.is_nan() {
+            return true
+        }
+        false
+    }
 }
 
 impl std::ops::Add for Color {
@@ -37,6 +48,19 @@ impl std::ops::Add for Color {
             g: self.g + other.g,
             b: self.b + other.b,
             a: self.a + other.a,
+        }
+    }
+}
+
+impl std::ops::Add<f64> for Color {
+    type Output = Self;
+
+    fn add(self, other: f64) -> Self {
+        Self {
+            r: self.r + other,
+            g: self.g + other,
+            b: self.b + other,
+            a: self.a + other,
         }
     }
 }

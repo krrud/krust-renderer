@@ -14,8 +14,9 @@ mod color;
 mod buffers;
 mod render;
 mod texture;
+mod lights;
 extern crate num_cpus;
-use crate::render::{render_pixel, ray_color};
+use crate::render::{render_pixel, ray_color, get_pixel_chunks, render_chunk};
 use crate::bvh::Bvh;
 use crate::camera::Camera;
 use crate::hit::{HitRecord, HittableList, Object, Hittable};
@@ -40,6 +41,7 @@ use std::{env, fs, thread};
 use std::sync::{Arc, Mutex, RwLock};
 use std::mem::drop;
 use crate::texture::TextureMap;
+use rayon::prelude::*;
 
 
 #[show_image::main]
@@ -47,7 +49,6 @@ fn main() {
 
     print!("Processing scene...");
     let data = fs::read_to_string("render_data.json").expect("Unable to read render data.");
-    // let data = fs::read_to_string("./src/scenes/roughness_wedge.json").expect("Unable to read render data."); 
     let data: serde_json::Value = serde_json::from_str(&data).expect("Incorrect JSON format.");
 
     // render settings
@@ -142,50 +143,50 @@ fn main() {
         );
 
         // textures
-        let dt = mat["diffuse_tex"].to_string().replace(['"'], "");
         let mut diffuse_tex = None;
+        let dt = mat["diffuse_tex"].to_string().replace(['"'], "");
         if dt != "" {            
             diffuse_tex = Some(TextureMap::new(&dt, true))
         };
 
-        let dwt = mat["diffuse_weight_tex"].to_string().replace(['"'], "");
         let mut diffuse_weight_tex = None;
+        let dwt = mat["diffuse_weight_tex"].to_string().replace(['"'], "");
         if dwt != "" {
             diffuse_weight_tex = Some(TextureMap::new(&dwt, true))
         };
 
-        let st = mat["specular_tex"].to_string().replace(['"'], "");
         let mut specular_tex = None;
+        let st = mat["specular_tex"].to_string().replace(['"'], "");
         if st != "" {
             specular_tex = Some(TextureMap::new(&st, true))
         };
 
-        let swt = mat["specular_weight_tex"].to_string().replace(['"'], "");
         let mut specular_weight_tex = None;
+        let swt = mat["specular_weight_tex"].to_string().replace(['"'], "");
         if swt != "" {
             specular_weight_tex = Some(TextureMap::new(&swt, true))
         };
 
-        let rt = mat["roughness_tex"].to_string().replace(['"'], "");
         let mut roughness_tex = None;
+        let rt = mat["roughness_tex"].to_string().replace(['"'], "");
         if rt != "" {
             roughness_tex = Some(TextureMap::new(&rt, true))
         };
 
-        let mt = mat["metallic_tex"].to_string().replace(['"'], "");
         let mut metallic_tex = None;
+        let mt = mat["metallic_tex"].to_string().replace(['"'], "");
         if mt != "" {
             metallic_tex = Some(TextureMap::new(&mt, true))
         };
 
-        let rft = mat["refraction_tex"].to_string().replace(['"'], "");
         let mut refraction_tex = None;
+        let rft = mat["refraction_tex"].to_string().replace(['"'], "");
         if rft != "" {
             refraction_tex = Some(TextureMap::new(&rft, true))
         };
 
-        let et = mat["emission_tex"].to_string().replace(['"'], "");
         let mut emission_tex = None;
+        let et = mat["emission_tex"].to_string().replace(['"'], "");
         if et != "" {
             emission_tex = Some(TextureMap::new(&et, true))
         };
@@ -211,8 +212,6 @@ fn main() {
         ));
         scene_materials.insert(name, Arc::new(material));
     }
-
-    let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/texture_sky_sunset.exr", false));
 
     println!("Processing meshes...");
     // get tris
@@ -277,7 +276,7 @@ fn main() {
                 .to_string()
                 .replace(['"'], "");
             let material = scene_materials.get(material_name).unwrap();
-            let new_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), true));
+            let new_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
             world.objects.push(Arc::new(new_tri));
             if vtx_array[i].as_array().unwrap().len() == 4 {
                 let p3 = Vec3::new(
@@ -297,14 +296,14 @@ fn main() {
                 let vertices = vec![p2, p3, p0];
                 let normals = vec![n2, n3, n0];
                 let uvs = vec![uv2, uv3, uv0];
-                let quad_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), true));
+                let quad_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
                 world.objects.push(Arc::new(quad_tri));
             }
             
         }
     }
 
-    // // get spheres
+    // get spheres
     let sphere_count = data["scene"]["sphere_count"].as_u64().unwrap();
     for obj in 0..sphere_count {
         let material_name = &data["scene"]["spheres"][obj as usize]["material"]
@@ -332,7 +331,7 @@ fn main() {
         world.objects.push(Arc::new(new_sphere));
     }
 
-    // println!("Processing lights...");
+    // get lights
     let light_count = data["scene"]["light_count"].as_u64().unwrap();
     for obj in 0..light_count {
         let vtx_array = &data["scene"]["lights"][obj as usize]["points"]
@@ -384,11 +383,9 @@ fn main() {
             world.objects.push(Arc::new(tri2));
         }
     }
-    let world_size = &world.objects.len();
 
     println!("Processing BVH..."); 
     let world_bvh = Arc::new(Object::Bvh(Bvh::new(&mut world.objects, 0.0, 1.0)));
-
 
     println!("Rendering scene...");
     //----------------------------------------------------------------------------------
@@ -403,89 +400,224 @@ fn main() {
     );
 
     // create pixel chunks for threads
-    let thread_count = num_cpus::get() as u32;
-    let width_vec: Arc<Vec<usize>> = Arc::new((0usize..width as usize).collect::<Vec<_>>());
-    let mut chunks = Vec::new();
-    let chunk_size = (width + thread_count - 1) / thread_count;
-    for chunk in width_vec.chunks(chunk_size as usize) {
-        chunks.push(chunk.to_owned());
-    }
-    let thread_chunks = Arc::new(chunks);
+    // let thread_count = num_cpus::get() as u32;
+    // let width_vec: Arc<Vec<usize>> = Arc::new((0usize..width as usize).collect::<Vec<_>>());
+    // let mut chunks = Vec::new();
+    // let chunk_size = (width + thread_count - 1) / thread_count;
+    // for chunk in width_vec.chunks(chunk_size as usize) {
+    //     chunks.push(chunk.to_owned());
+    // }
+    // let thread_chunks = Arc::new(chunks);
 
-    for sample in 0..(spp / 4) {
+    // for sample in 0..spp {
+    //     if sample != 0 {
+    //         progress.inc(1);
+    //     } 
+    //     for y in 0..height {
+    //         // spawn threads and render chunks
+    //         let mut threads:Vec<thread::JoinHandle<()>> = Vec::new();   
+    //         for index in 2..thread_count+1 {
+    //             let thread_chunks = thread_chunks.clone();
+    //             let camera = camera.clone();
+    //             let world_bvh = world_bvh.clone();
+    //             let buffer_rgba = buffer_rgba.clone();
+    //             let buffer_diff = buffer_diffuse.clone();
+    //             let buffer_spec = buffer_specular.clone();
+    //             let preview = preview.clone();
+    //             let sky = skydome_texture.clone();
+    //             threads.push(                    
+    //                 thread::spawn( move || {          
+    //                     for x in &thread_chunks[index as usize-1] {
+    //                         render_pixel(
+    //                             *x as u32, 
+    //                             y, 
+    //                             &height, 
+    //                             &width, 
+    //                             &sample, 
+    //                             &buffer_rgba, 
+    //                             &buffer_diff, 
+    //                             &buffer_spec, 
+    //                             &preview, 
+    //                             &camera, 
+    //                             &world_bvh, 
+    //                             depth, 
+    //                             depth,
+    //                             progressive,
+    //                             &Some(sky.clone()),
+    //                             false
+    //                         );
+    //                     }
+    //                 })
+    //             )
+    //         }     
+    //         // main thread - renders first horizontal chunk
+    //         let buffer_rgba = buffer_rgba.clone();
+    //         let buffer_diff = buffer_diffuse.clone();
+    //         let buffer_spec = buffer_specular.clone();
+    //         let preview = preview.clone();
+    //         let camera = camera.clone();
+    //         let world_bvh = world_bvh.clone();
+    //         let thread_chunks = thread_chunks.clone();
+    //         let sky = skydome_texture.clone();
+    //         for x in &thread_chunks[0] {
+    //             render_pixel(
+    //                 *x as u32, 
+    //                 y, 
+    //                 &height, 
+    //                 &width, 
+    //                 &sample, 
+    //                 &buffer_rgba, 
+    //                 &buffer_diff, 
+    //                 &buffer_spec, 
+    //                 &preview, 
+    //                 &camera, 
+    //                 &world_bvh, 
+    //                 depth, 
+    //                 depth,
+    //                 progressive,
+    //                 &Some(sky.clone()),
+    //                 false
+    //             );
+    //         }
+    //         for thread in threads {
+    //             thread.join();
+    //         }
+    //     }
+
+    let pixel_chunks = Arc::new(get_pixel_chunks(64 as usize, width as usize, height as usize)); 
+    let num_threads = num_cpus::get();
+    let thread_chunk_size = (pixel_chunks.len() as f32 / num_threads as f32).ceil() as usize;
+    for sample in 0..spp {
         if sample != 0 {
             progress.inc(1);
-        } 
-        for y in 0..height {
-            // spawn threads and render chunks
-            let mut threads:Vec<thread::JoinHandle<()>> = Vec::new();   
-            for index in 2..thread_count+1 {
-                let thread_chunks = thread_chunks.clone();
-                let camera = camera.clone();
-                let world_bvh = world_bvh.clone();
-                let buffer_rgba = buffer_rgba.clone();
-                let buffer_diff = buffer_diffuse.clone();
-                let buffer_spec = buffer_specular.clone();
-                let preview = preview.clone();
-                let sky = skydome_texture.clone();
-                threads.push(                    
-                    thread::spawn( move || {          
-                        for x in &thread_chunks[index as usize-1] {
-                            render_pixel(
-                                *x as u32, 
-                                y, 
-                                &height, 
-                                &width, 
-                                &sample, 
-                                &buffer_rgba, 
-                                &buffer_diff, 
-                                &buffer_spec, 
-                                &preview, 
-                                &camera, 
-                                &world_bvh, 
-                                depth, 
-                                depth,
-                                progressive,
-                                &Some(sky.clone()),
-                                false
-                            );
-                        }
-                    })
-                )
-            }     
-            // main thread - renders first horizontal chunk
-            let buffer_rgba = buffer_rgba.clone();
-            let buffer_diff = buffer_diffuse.clone();
-            let buffer_spec = buffer_specular.clone();
-            let preview = preview.clone();
+        }
+        // let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/texture_sky_sunset.exr", false));
+        let mut handles = Vec::with_capacity(num_threads);
+        for chunk in pixel_chunks.chunks(thread_chunk_size).map(|c| c.to_vec()) {
             let camera = camera.clone();
             let world_bvh = world_bvh.clone();
-            let thread_chunks = thread_chunks.clone();
-            let sky = skydome_texture.clone();
-            for x in &thread_chunks[0] {
-                render_pixel(
-                    *x as u32, 
-                    y, 
-                    &height, 
-                    &width, 
-                    &sample, 
-                    &buffer_rgba, 
-                    &buffer_diff, 
-                    &buffer_spec, 
-                    &preview, 
-                    &camera, 
-                    &world_bvh, 
-                    depth, 
-                    depth,
-                    progressive,
-                    &Some(sky.clone()),
-                    false
-                );
-            }
-            for thread in threads {
-                thread.join();
+            // let sky = skydome_texture.clone();
+            let handle = thread::spawn(move || {
+                let result = chunk.iter().map(|c|
+                    render_chunk(
+                        c,
+                        height,
+                        width,
+                        &sample,
+                        2,
+                        &camera,
+                        &world_bvh,
+                        depth,
+                        depth,
+                        progressive,
+                        &None,//&Some(sky.clone()),
+                        false,
+                        )
+                    ).collect::<Vec<Vec<(u32, u32, Lobes)>>>();
+                result
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            let thread_result = handle.join().unwrap();
+            for chunk_result in thread_result.iter() {
+                for pixel in chunk_result{
+                    let (x, y, color) = (pixel.0, pixel.1, pixel.2);
+                    let mut rgba = color.beauty;
+                    let mut diff = color.diffuse;
+                    let mut spec = color.specular;
+
+                    // get existing rgba vals TODO UPDATE THESE TO FRAMEBUFFER STRUCTS
+                    let prev_rgba = buffer_rgba.read().unwrap();
+                    let p = prev_rgba.get_pixel(x, y);
+                    let previous_rgba =Color::new(
+                        p[0] as f64, 
+                        p[1] as f64, 
+                        p[2] as f64, 
+                        p[3] as f64
+                    );
+                    drop(prev_rgba);
+
+                    // get existing diffuse vals
+                    let prev_diff = buffer_diffuse.read().unwrap();
+                    let p = prev_diff.get_pixel(x, y);
+                    let previous_diff =Color::new(
+                        p[0] as f64, 
+                        p[1] as f64, 
+                        p[2] as f64, 
+                        p[3] as f64
+                    );
+                    drop(prev_diff);
+
+                    // get existing specular vals
+                    let prev_spec = buffer_specular.read().unwrap();
+                    let p = prev_spec.get_pixel(x, y);
+                    let previous_spec = Color::new(
+                        p[0] as f64, 
+                        p[1] as f64, 
+                        p[2] as f64, 
+                        p[3] as f64
+                    );
+                    drop(prev_spec);
+
+                    // average in new sample for each lobe
+                    if sample > 0 {
+                        let average = (sample + 1) as f64;
+                        rgba = (rgba + (previous_rgba * sample as f64)) /  average;
+                        diff = (diff + (previous_diff * sample as f64)) /  average;
+                        spec = (spec + (previous_spec * sample as f64)) /  average;
+                    }
+
+                    // update rgba buffer
+                    let mut out_rgba = buffer_rgba.write().unwrap();
+                    out_rgba.put_pixel(x, y, 
+                        Rgba([
+                            rgba.r as f32, 
+                            rgba.g as f32, 
+                            rgba.b as f32, 
+                            rgba.a as f32
+                            ]));
+                    drop(out_rgba);
+
+                    // update diffuse buffer
+                    let mut out_diff = buffer_diffuse.write().unwrap();
+                    out_diff.put_pixel(x, y, 
+                        Rgba([
+                            diff.r as f32, 
+                            diff.g as f32, 
+                            diff.b as f32, 
+                            diff.a as f32
+                            ]));
+                    drop(out_diff);
+
+                    // update specular buffer
+                    let mut out_spec = buffer_specular.write().unwrap();
+                    out_spec.put_pixel(x, y, 
+                        Rgba([
+                            spec.r as f32, 
+                            spec.g as f32, 
+                            spec.b as f32, 
+                            spec.a as f32
+                            ]));
+                    drop(out_spec);
+
+                    let mut preview_buffer = preview.write().unwrap();
+                    preview_buffer.put_pixel(
+                        x as u32,
+                        y as u32,
+                        Rgba([
+                            (rgba.r.sqrt() * 255.999) as u8,
+                            (rgba.g.sqrt() * 255.999) as u8,
+                            (rgba.b.sqrt() * 255.999) as u8,
+                            (rgba.a.sqrt() * 255.999) as u8,
+                        ]),
+                    );
+                    drop(preview_buffer); 
+                }
             }
         }
+
         let buffer = buffer_rgba.write().unwrap();
         buffer.save(&output);
         drop(buffer);

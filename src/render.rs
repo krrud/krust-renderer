@@ -11,10 +11,10 @@ use std::{env, fs, thread};
 use std::sync::{Arc, Mutex, RwLock};
 use crate::utility::{random_float, INF};
 use crate::hit::{HitRecord, HittableList, Object, Hittable};
-use crate::material::Scatterable;
 use std::f64::consts::PI;
 use crate::texture::TextureMap;
-
+use crate::lights::DirectionalLight;
+use crate::material::{Emits, Light, Material, Principle, Scatterable};
 
 pub fn ray_color(   
     r: &Ray, world: &Object, depth: u32, 
@@ -22,33 +22,81 @@ pub fn ray_color(
     skydome: &Option<Arc<TextureMap>>, hide_skydome: bool
     ) -> Lobes {
     if depth <= 0 {
-        return Lobes {
-            beauty:  Color::black(),
-            diffuse: Color::black(),
-            specular: Color::black(),
-            albedo:  Color::black(), 
-            emission:  Color::black(),
-        }
+        return Lobes::empty();
     }
-    if let (true, Some(hit_rec)) = world.hit(&r, 0.001, INF) {
+    if let (true, Some(hit_rec)) = world.hit(&r, 0.0001, INF) {
         if let Some((scattered_ray, albedo, lobe, emit)) = hit_rec.material.scatter(&r, &hit_rec) {
-            if let Some(sr) = scattered_ray {
-                let emission = if hit_rec.front_face {emit} else {Color::black()};
-                let rc = ray_color(&sr, &world, depth - 1, max_depth, progressive, skydome, hide_skydome);
-                return Lobes {
-                    beauty: emit + (albedo * rc.beauty),
-                    diffuse: if lobe == "diffuse" {albedo * rc.beauty} else {Color::black()},
-                    specular: if lobe == "specular" {rc.beauty} else if lobe == "metallic" {albedo * rc.beauty} else {Color::black()},
-                    albedo, 
-                    emission,
+            if let Some(ray) = scattered_ray {
+                // sample scene
+                let sample = ray_color(&ray, &world, depth - 1, max_depth, progressive, skydome, hide_skydome);
+                let mut color = Lobes::empty();
+                color.beauty = emit + (albedo * sample.beauty);
+                color.diffuse = if lobe == "diffuse" {albedo * color.beauty} else {Color::black()};
+                color.specular = 
+                if lobe == "specular" {sample.beauty}
+                else if lobe == "metallic" {albedo * sample.beauty}
+                else {Color::black()};
+                color.emission = if hit_rec.front_face {emit} else {Color::black()};
+
+                // directional lights
+                let mut diffuse_weight = 0.0;
+                let mut specular_weight = 0.0;
+                let mut roughness = 0.0;
+                
+                if let Material::Principle(principle) = &*hit_rec.material {
+                    diffuse_weight = principle.diffuse_weight;
+                    if let Some(dwt) = &principle.diffuse_weight_texture {
+                        diffuse_weight = principle.diffuse_weight_texture
+                            .as_ref()
+                            .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
+                            .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+                    } 
+                    specular_weight = principle.specular_weight;
+                    if let Some(rt) = &principle.specular_weight_texture {
+                        specular_weight = principle.specular_weight_texture
+                            .as_ref()
+                            .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
+                            .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+                    } 
+                    roughness = principle.roughness;
+                    if let Some(rt) = &principle.roughness_texture {
+                        roughness = principle.roughness_texture
+                            .as_ref()
+                            .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
+                            .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+                    } 
+                    roughness = (1.0 - roughness).powf(4.0) * 1000.0 + 3.5;
+
+                    let view_dir = -(r.direction).unit_vector();
+                    let dir_light = DirectionalLight::new(Vec3::new(-0.4494639595455351, 0.6829063708571647, -0.5758654684145821), Color::white(), 0.5);
+                    let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe);
+    
+                    if !dir_light.shadow(&hit_rec.point, &world){
+                        if lobe == "diffuse" {
+                            color.beauty = color.beauty + (albedo * dir_light_contrib * diffuse_weight);
+                            color.diffuse = color.diffuse + (albedo * dir_light_contrib * diffuse_weight);
+                        } else if lobe == "specular" {
+                            color.beauty = color.beauty + (dir_light_contrib * specular_weight);
+                            color.specular = color.specular + (dir_light_contrib * specular_weight);
+                        }                        
+                    }                    
                 }
+                
+                // return final composite
+                if color.beauty.sum() < 0.001 && color.emission.sum() < 0.001 {
+                    return Lobes::empty();
+                } else if color.beauty.has_nan() {
+                    return Lobes::empty();
+                } else {
+                    return color
+                }                
             }
         }
     }
     match skydome {
         Some(ref sky) => {
             let unit_direction = Vec3::unit_vector(&r.direction);
-            let rotation_degrees: f64 = 45.0;
+            let rotation_degrees: f64 = 0.0;
             let rotation_radians = rotation_degrees.to_radians();
             let phi = unit_direction.z.atan2(unit_direction.x) + rotation_radians;
             let theta = (-unit_direction.y).asin();
@@ -79,10 +127,10 @@ pub fn ray_color(
 
             let unit_direction = Vec3::unit_vector(&r.direction);
             let t = 0.5 * (unit_direction.y() + 1.0);
-            let gradient_color = Color::new(0.3, 0.45, 0.1, 0.0);
-            let gradient = Color::black() * (1.0 - t) + gradient_color * t;
+            let gradient_color = Color::new(0.63, 0.75, 1.0, if hide_skydome {0.0} else {1.0});
+            let gradient = Color::new(1.0, 1.0, 1.0, if hide_skydome {0.0} else {1.0}) * (1.0 - t) + gradient_color * t;
             return Lobes {
-                beauty: Color::new(0.5,0.5,0.5,0.0),
+                beauty: gradient,
                 diffuse: Color::black(),
                 specular: Color::black(),
                 albedo: Color::black(), 
@@ -194,4 +242,63 @@ pub fn render_pixel(
             ]),
         );
         drop(preview_buffer);
+}
+
+pub fn render_chunk(
+    pixel_chunks: &Vec<(u32, u32)>,
+    height: u32,
+    width: u32,
+    sample: &u16,
+    subsamples: u32,
+    camera: &Arc<Camera>,
+    bvh: &Object,
+    depth: u32,
+    max_depth: u32,
+    progressive: bool,
+    skydome: &Option<Arc<TextureMap>>,
+    hide_skydome: bool,
+    ) -> Vec<(u32, u32, Lobes)> {
+        let mut pixel_colors = Vec::new();
+        for pixel in pixel_chunks {
+            let (x, y) = pixel;
+            let mut sum = Lobes::empty();
+            for i in 0..subsamples{                
+                let u = (*x as f64 + random_float()) / ((width - 1) as f64);
+                let v = 1.0 - ((*y as f64 + random_float()) / ((height - 1) as f64));
+                let r = camera.get_ray(u, v);
+                let sample = ray_color(&r, bvh, depth, max_depth, progressive, skydome, hide_skydome);
+                sum = sum + sample;
+            }
+            let color = sum.average_samples(subsamples);
+            pixel_colors.push((*x, *y, color));
+        }
+        pixel_colors
+}
+
+pub fn get_pixel_chunks(chunk_size: usize, width: usize, height: usize) -> Vec<Vec<(u32, u32)>> {
+
+    let mut chunks = Vec::new();
+    for y in (0..height).step_by(chunk_size as usize) {
+        for x in (0..width).step_by(chunk_size as usize) {
+            let chunk_width = if x + chunk_size > width {
+                width - x
+            } else {
+                chunk_size
+            };
+            let chunk_height = if y + chunk_size > height {
+                height - y
+            } else {
+                chunk_size
+            };
+
+            let mut chunk = Vec::new();
+            for i in 0..chunk_width {
+                for j in 0..chunk_height {
+                    chunk.push(((x + i) as u32, (y + j) as u32));
+                }
+            }
+            chunks.push(chunk);
+        }
+    }
+    chunks
 }

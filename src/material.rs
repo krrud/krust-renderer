@@ -25,7 +25,6 @@ impl Scatterable for Material {
         match self {
             Material::Principle(principle) => principle.scatter(ray, hit_rec),
             Material::Light(light) => light.scatter(ray, hit_rec),
-            // Material::Metallic(metallic) => metallic.scatter(ray, hit_rec),
         }
     }
 }
@@ -240,7 +239,7 @@ impl Scatterable for Principle {
             let cannot_refract: bool = sin_theta * refraction_ratio > 1.0;
             let mut direction: Vec3;
             if cannot_refract
-                || Principle::reflectance(cos_theta, refraction_ratio) > roll
+                || Principle::reflectance(cos_theta, refraction_ratio) > random_float()
             {
                 direction = Vec3::reflect(unit_direction, rec.normal);
             } else {
@@ -255,8 +254,8 @@ impl Scatterable for Principle {
             let mut lobe = "diffuse";
             let mut attenuation = diffuse * diffuse_weight; 
             let mut direction: Vec3 = rec.normal + Vec3::random_unit_vector();
-            let spec_mult = roll <= specular_weight;
-            if Principle::reflectance(cos_theta, refraction_ratio)> roll && spec_mult {
+            let spec_mult = random_float() <= specular_weight;
+            if Principle::reflectance(cos_theta, refraction_ratio)> random_float() && spec_mult {
                 lobe = "specular";
                 direction = Vec3::reflect(unit_direction, rec.normal)
                             + Vec3::random_unit_vector() * roughness;

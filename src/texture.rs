@@ -3,6 +3,7 @@ use image::codecs::hdr::{HdrDecoder, Rgbe8Pixel};
 use crate::color::Color;
 use palette::{Srgb, LinSrgb};
 use std::path::Path;
+use rayon::prelude::*;
 
 
 #[derive(Debug, Clone)]
@@ -24,12 +25,23 @@ impl TextureMap {
                 let decoder = HdrDecoder::new(reader).unwrap();
                 let metadata = decoder.metadata();
                 let pixels = decoder.read_image_hdr().unwrap();
-                let mut buffer_data = Vec::new();
-                for pixel in pixels {           
-                    buffer_data.push(pixel[0]);
-                    buffer_data.push(pixel[1]);
-                    buffer_data.push(pixel[2]);
-                }
+                // let mut buffer_data = Vec::new();
+                // for pixel in pixels {           
+                //     buffer_data.push(pixel[0]);
+                //     buffer_data.push(pixel[1]);
+                //     buffer_data.push(pixel[2]);
+                // }
+                let buffer_data = pixels.par_chunks(1000)
+                    .flat_map(|chunk| {
+                        let mut buffer_data = Vec::new();
+                        for pixel in chunk {
+                            buffer_data.push(pixel[0]);
+                            buffer_data.push(pixel[1]);
+                            buffer_data.push(pixel[2]);
+                        }
+                        buffer_data
+                    })
+                .collect::<Vec<_>>();
                 let buffer = ImageBuffer::from_raw(metadata.width, metadata.height, buffer_data).unwrap();
                 TextureMap {image: buffer, srgb}
             } else {
