@@ -1,6 +1,9 @@
 use crate::utility::{random_float, random_range};
 use std::f64;
 use std::{ops, cmp};
+use nalgebra::{Matrix3, Vector3};
+use std::f64::consts::PI;
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -124,10 +127,6 @@ impl Vec3 {
         v - (n * Vec3::dot(&v, &n)) * 2.0
     }
 
-    pub fn reflect2(incident: Vec3, normal: Vec3) -> Vec3 {
-        incident - 2.0 * incident.dot(&normal) * normal
-    }
-
     pub fn refract(uv: &Vec3, n: &Vec3, etai_over_etat: f64) -> Vec3 {
         let neg_uv = *uv*-1.0;
         let cos_theta = f64::min(Vec3::dot(&neg_uv, n), 1.0);
@@ -143,6 +142,53 @@ impl Vec3 {
             return p;
         }
     }
+
+    pub fn sample_hemisphere_cosine(&self, phi: f64, sin_theta: f64, cos_theta: f64) -> Vec3 {
+        let r = (1.0 - sin_theta * sin_theta).sqrt();
+        let x = r * phi.cos();
+        let y = r * phi.sin();
+        let z = cos_theta;
+        let t = Vec3::new(x, y, z);
+        let u = self.unit_vector();
+        let w = Vec3::cross(&u, &t).unit_vector();
+        let v = Vec3::cross(&w, &u);
+        let d = u * t.z + v * t.y + w * t.x;
+        return d.unit_vector();
+    }
+
+    pub fn cosine_weighted_direction(&self, normal: &Vec3) -> Vec3 {
+        let r1 = 2.0 * std::f64::consts::PI * random_float();
+        let r2 = random_float();
+        let r2s = r2.sqrt();
+
+        let w = normal;
+        let u = if w.x.abs() > 0.1 {
+            Vec3::new(0.0, 1.0, 0.0)
+        } else {
+            Vec3::new(1.0, 0.0, 0.0)
+        }
+        .cross(w)
+        .unit_vector();
+        let v = w.cross(&u);
+
+        let direction = (u * r1.cos() * r2s + v * r1.sin() * r2s + *w * (1.0 - r2)).unit_vector();
+
+        direction
+    }
+
+    
+    pub fn random_cosine_direction() -> Vec3 {
+        let r1 = random_float();
+        let r2 = random_float();
+        let z = (1.0 - r2).sqrt();
+
+        let phi = 2.0 * PI * r1;
+        let x = phi.cos() * r2.sqrt();
+        let y = phi.sin() * r2.sqrt();
+
+        Vec3::new(x, y, z)
+    }
+
 }
 
 impl ops::Add for Vec3 {

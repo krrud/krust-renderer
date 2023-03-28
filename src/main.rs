@@ -15,8 +15,10 @@ mod buffers;
 mod render;
 mod texture;
 mod lights;
+mod onb;
+mod pdf;
 extern crate num_cpus;
-use crate::render::{render_pixel, ray_color, get_pixel_chunks, render_chunk};
+use crate::render::{ray_color, get_pixel_chunks, render_chunk};
 use crate::bvh::Bvh;
 use crate::camera::Camera;
 use crate::hit::{HitRecord, HittableList, Object, Hittable};
@@ -42,6 +44,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::mem::drop;
 use crate::texture::TextureMap;
 use rayon::prelude::*;
+use crate::lights::QuadLight;
 
 
 #[show_image::main]
@@ -111,6 +114,7 @@ fn main() {
 
     // init world
     let mut world = HittableList::new();
+    let mut lights: Vec<Object> = vec![];
     std::io::stdout().flush();
     println!("\rProcessing materials...");
     let mut scene_materials: HashMap<String, Arc<Material>> = HashMap::new();
@@ -276,7 +280,7 @@ fn main() {
                 .to_string()
                 .replace(['"'], "");
             let material = scene_materials.get(material_name).unwrap();
-            let new_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
+            let new_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), true));
             world.objects.push(Arc::new(new_tri));
             if vtx_array[i].as_array().unwrap().len() == 4 {
                 let p3 = Vec3::new(
@@ -296,7 +300,7 @@ fn main() {
                 let vertices = vec![p2, p3, p0];
                 let normals = vec![n2, n3, n0];
                 let uvs = vec![uv2, uv3, uv0];
-                let quad_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
+                let quad_tri = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), true));
                 world.objects.push(Arc::new(quad_tri));
             }
             
@@ -370,19 +374,21 @@ fn main() {
                 .as_f64()
                 .unwrap();
 
-            let material = Arc::new(Material::Light(Light::new(color, intensity)));
-            let vertices = vec![p0, p1, p2];
-            let vertices2 = vec![p2, p3, p0];
-            let normals = vec![Vec3::black(), Vec3::black(), Vec3::black()];
-            let normals2 = vec![Vec3::black(), Vec3::black(), Vec3::black()];
-            let uvs = vec![Vec2::zero(), Vec2::zero(), Vec2::zero()];
-            let uvs2 = vec![Vec2::zero(), Vec2::zero(), Vec2::zero()];
-            let tri1 = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
-            let tri2 = Object::Tri(Tri::new(vertices2, normals2, uvs2, material.clone(), false));
-            world.objects.push(Arc::new(tri1));
-            world.objects.push(Arc::new(tri2));
+            // let material = Arc::new(Material::Light(Light::new(color, intensity)));
+            // let vertices = vec![p0, p1, p2];
+            // let vertices2 = vec![p2, p3, p0];
+            let vertices = vec![p0, p1, p2, p3];
+            let light = Object::QuadLight(QuadLight::new(color, intensity, vertices));            
+            lights.push(light);
+            let vertices = vec![p0, p1, p2, p3];
+            let light2 = Object::QuadLight(QuadLight::new(color, intensity, vertices));
+            // let tri1 = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
+            // let tri2 = Object::Tri(Tri::new(vertices2, normals2, uvs2, material.clone(), false));
+            world.objects.push(Arc::new(light2));
+            // world.objects.push(Arc::new(tri2));
         }
     }
+    let world_lights = Arc::new(lights);
 
     println!("Processing BVH..."); 
     let world_bvh = Arc::new(Object::Bvh(Bvh::new(&mut world.objects, 0.0, 1.0)));
@@ -491,12 +497,13 @@ fn main() {
         if sample != 0 {
             progress.inc(1);
         }
-        // let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/texture_sky_sunset.exr", false));
+        let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/sky_studio_country.exr", false));
         let mut handles = Vec::with_capacity(num_threads);
         for chunk in pixel_chunks.chunks(thread_chunk_size).map(|c| c.to_vec()) {
             let camera = camera.clone();
             let world_bvh = world_bvh.clone();
-            // let sky = skydome_texture.clone();
+            let world_lights = world_lights.clone();
+            let sky = skydome_texture.clone();
             let handle = thread::spawn(move || {
                 let result = chunk.iter().map(|c|
                     render_chunk(
@@ -507,6 +514,7 @@ fn main() {
                         2,
                         &camera,
                         &world_bvh,
+                        &world_lights,
                         depth,
                         depth,
                         progressive,

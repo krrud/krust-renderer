@@ -8,12 +8,14 @@ use crate::material::{Material, Principle};
 use crate::aabb::Aabb;
 use crate::bvh::Bvh;
 use std::sync::Arc;
+use crate::lights::QuadLight;
 
 
 #[derive(Clone)]
 pub enum Object{
     Sphere(Sphere),
     Tri(Tri),
+    QuadLight(QuadLight),
     // TriMesh(TriMesh),
     Aabb(Aabb),
     Bvh(Bvh),
@@ -29,6 +31,14 @@ impl Object{
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> (bool, Option<HitRecord>);
+
+    fn pdf_value(&self, o: &Vec3, v: &Vec3) -> f64 {
+        0.0
+    }
+
+    fn random(&self, o: &Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
+    }
 }
 
 impl Hittable for Object {
@@ -36,10 +46,18 @@ impl Hittable for Object {
         match self {
             Object::Sphere(sphere) => sphere.hit(ray, t_min, t_max),
             Object::Tri(tri) => tri.hit(ray, t_min, t_max),
+            Object::QuadLight(ql) => ql.hit(ray, t_min, t_max),
             // Object::TriMesh(trimesh) => trimesh.hit(ray, t_min, t_max),
             Object::Aabb(aabb) => aabb.hit(ray, t_min, t_max),
             Object::Bvh(bvh) => bvh.hit(ray, t_min, t_max),
             Object::HittableList(hl) => hl.hit(ray, t_min, t_max),
+        }
+    }
+
+    fn pdf_value(&self, o: &Vec3, v: &Vec3) -> f64 {
+        match self {
+            Object::QuadLight(ql) => ql.pdf_value(o, v),
+            _=> {0.0}
         }
     }
 }
@@ -53,6 +71,7 @@ impl BoundingBox for Object {
         match self {
             Object::Sphere(sphere) => sphere.bounding_box(time0, time1),
             Object::Tri(tri) => tri.bounding_box(time0, time1),
+            Object::QuadLight(ql) => ql.bounding_box(time0, time1),
             // Object::TriMesh(trimesh) => trimesh.bounding_box(time0, time1),
             Object::Aabb(aabb) => aabb.bounding_box(time0, time1),
             Object::Bvh(bvh) => bvh.bounding_box(time0, time1),

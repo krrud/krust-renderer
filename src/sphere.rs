@@ -17,17 +17,20 @@ pub struct Sphere {
     pub time0: f64,
     pub time1: f64,
     pub radius: f64,
+    pub area: f64,
     pub material: Arc<Material>,
 }
 
 impl Sphere {
     pub fn new(center0: Vec3, center1: Vec3, time0: f64, time1: f64, radius: f64, material: Arc<Material>) -> Sphere {
+        let area = 4.0 * PI * radius.powf(2.0);
         Sphere {
             center0,
             center1,
             time0,
             time1,
             radius,
+            area,
             material,
         }
     }

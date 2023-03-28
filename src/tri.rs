@@ -14,16 +14,21 @@ pub struct Tri {
     pub vertices: Vec<Vec3>,
     pub normals: Vec<Vec3>,
     pub uvs: Vec<Vec2>,
+    pub area: f64,
     pub material: Arc<Material>,
     pub smooth: bool,
 }
 
 impl Tri {
     pub fn new(vertices: Vec<Vec3>, normals: Vec<Vec3>, uvs: Vec<Vec2>, material: Arc<Material>, smooth: bool) -> Tri {
+        let a = Vec3::cross(&(vertices[1]-vertices[0]), &(vertices[2]-vertices[0]));
+        let area = (a.x.abs().powf(2.0) + a.y.abs().powf(2.0) + a.z.abs().powf(2.0)).sqrt();
+
         Tri {
             vertices,
             normals,
             uvs,
+            area,
             material,
             smooth,
         }
@@ -64,12 +69,12 @@ impl Tri {
                 let front_face = normal.dot(&r.direction) < 0.0;
                 return (true,
                 Some(HitRecord {
-                t,
-                point: p,
-                normal: if front_face {normal} else {-normal},
-                uv,
-                front_face,
-                material: self.material.clone(),
+                    t,
+                    point: p,
+                    normal: if front_face {normal} else {-normal},
+                    uv,
+                    front_face,
+                    material: self.material.clone(),
                 }));                
             }
         } else {
