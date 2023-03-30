@@ -26,16 +26,19 @@ pub fn ray_color(
     }
 
     if let (true, Some(hit_rec)) = world.hit(&r, 0.0001, INF) {
-        if let Some((scattered_ray, albedo, lobe, emit, pdf)) = hit_rec.material.scatter(&r, &hit_rec, lights) {
+        if let Some((scattered_ray, albedo, lobe, emit)) = hit_rec.material.scatter(&r, &hit_rec, lights) {
             if let Some(ray) = scattered_ray {
                 // sample scene
                 let sample = ray_color(&ray, &world, &lights, depth - 1, max_depth, progressive, skydome, hide_skydome);
+                let composite = emit + albedo * sample.beauty;
+
+                // sort lobes
                 let mut color = Lobes::empty();
-                color.beauty = emit + albedo * sample.beauty * pdf;
-                color.diffuse = if lobe == "diffuse" {albedo * color.beauty} else {Color::black()};
+                color.beauty = composite;
+                color.diffuse = if lobe == "diffuse" {composite} else {Color::black()};
                 color.specular = 
-                if lobe == "specular" {sample.beauty}
-                else if lobe == "metallic" {albedo * sample.beauty}
+                if lobe == "specular" {composite}
+                else if lobe == "metallic" {composite}
                 else {Color::black()};
                 color.emission = if hit_rec.front_face {emit} else {Color::black()};
 
@@ -131,7 +134,7 @@ pub fn ray_color(
             let gradient_color = Color::new(0.63, 0.75, 1.0, if hide_skydome {0.0} else {1.0});
             let gradient = Color::new(1.0, 1.0, 1.0, if hide_skydome {0.0} else {1.0}) * (1.0 - t) + gradient_color * t;
             return Lobes {
-                beauty: Color::black(),//gradient,
+                beauty: Color::black(),
                 diffuse: Color::black(),
                 specular: Color::black(),
                 albedo: Color::black(), 

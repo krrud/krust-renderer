@@ -21,7 +21,15 @@ impl Vec3 {
         Vec3::new(0.0, 0.0, 0.0)
     }
 
+    pub fn zeros() -> Vec3 {
+        Vec3::new(0.0, 0.0, 0.0)
+    }
+
     pub fn white() -> Vec3 {
+        Vec3::new(1.0, 1.0, 1.0)
+    }
+
+    pub fn ones() -> Vec3 {
         Vec3::new(1.0, 1.0, 1.0)
     }
 
