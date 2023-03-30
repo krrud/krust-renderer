@@ -267,7 +267,7 @@ impl Scatterable for Principle {
       
 
         } else {      
-            // pdf
+            // light selection
             let mut to_light = Vec3::black();
             let mut on_light = Vec3::black();
             let mut distance_squared = 0.0;
@@ -314,9 +314,9 @@ impl Scatterable for Principle {
                 pdf_val = distance_squared / (light_cosine * quad_light.area);
             }
          
-            if specular_weight / (specular_weight + diffuse_weight) > random_float() {
+            if specular_weight / (specular_weight + diffuse_weight) > roll {
                 // specular
-                let r = if roughness == 0.0 {0.01} else {roughness*roughness};
+                let r = if roughness == 0.0 {0.01} else {roughness*roughness / 2.0};
                 let v = -r_in.direction.unit_vector();
                 let n = rec.normal.unit_vector();
                 let mut h = n;
@@ -348,7 +348,8 @@ impl Scatterable for Principle {
                     // ggx = d * g * f / (4.0 * ndl * ndv);
                     ggx = d * g * f / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));
                 } else {
-                    ggx = d * g * f / (4.0 * ndl * ndv);
+                    ggx = d * g * f / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));
+                    // ggx = d * g * f / (4.0 * ndl * ndv);
                 }
                 let direct_pdf = d * ndh / (4.0 * h.dot(&v));
                 let indirect_pdf = d * ndh / (4.0 * ldh);
@@ -361,7 +362,7 @@ impl Scatterable for Principle {
                 // let reflected_dir = Vec3::reflect(unit_direction, rec.normal) + offset; 
                 // scattered =  Ray::new(rec.point, reflected_dir, r_in.time);  
 
-                return Some((Some(scattered), attenuation, "specular".to_string(), emission))  
+                return Some((Some(scattered), attenuation * 2.0, "specular".to_string(), emission))  
 
             } else {
                 let mut attenuation = diffuse * diffuse_weight; 

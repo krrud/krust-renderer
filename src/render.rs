@@ -100,7 +100,7 @@ pub fn ray_color(
     match skydome {
         Some(ref sky) => {
             let unit_direction = Vec3::unit_vector(&r.direction);
-            let rotation_degrees: f64 = 0.0;
+            let rotation_degrees: f64 = 60.0;
             let rotation_radians = rotation_degrees.to_radians();
             let phi = unit_direction.z.atan2(unit_direction.x) + rotation_radians;
             let theta = (-unit_direction.y).asin();
