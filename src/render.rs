@@ -100,7 +100,7 @@ pub fn ray_color(
     match skydome {
         Some(ref sky) => {
             let unit_direction = Vec3::unit_vector(&r.direction);
-            let rotation_degrees: f64 = 60.0;
+            let rotation_degrees: f64 = 50.0;// crab rotation 60.0
             let rotation_radians = rotation_degrees.to_radians();
             let phi = unit_direction.z.atan2(unit_direction.x) + rotation_radians;
             let theta = (-unit_direction.y).asin();
@@ -134,7 +134,7 @@ pub fn ray_color(
             let gradient_color = Color::new(0.63, 0.75, 1.0, if hide_skydome {0.0} else {1.0});
             let gradient = Color::new(1.0, 1.0, 1.0, if hide_skydome {0.0} else {1.0}) * (1.0 - t) + gradient_color * t;
             return Lobes {
-                beauty: Color::black(),
+                beauty: gradient*gradient,//Color::black(),
                 diffuse: Color::black(),
                 specular: Color::black(),
                 albedo: Color::black(), 

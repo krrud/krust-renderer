@@ -231,40 +231,32 @@ impl Scatterable for Principle {
             self.ior
         };
         // metallic
-        if 1.0 - metallic < roll {
-            let reflected = Vec3::reflect(unit_direction, rec.normal);
-            let offset = Vec3::random_unit_vector() * roughness;
-            let offset = beckmann_offset(unit_direction, rec.normal, roughness);
-            let scattered = Ray::new(
-                rec.point,
-                reflected + offset,
-                r_in.time,
-            );
-            let attenuation = diffuse;
-            if Vec3::dot(&scattered.direction, &rec.normal) > 0.0 {
-                return Some((Some(scattered), attenuation, "specular".to_string(), emission));
-            } else {
-                return None;
-            }
-        }
+        // if 1.0 - metallic < roll {
+        //     let reflected = Vec3::reflect(unit_direction, rec.normal);
+        //     let offset = Vec3::random_unit_vector() * roughness;
+        //     let offset = beckmann_offset(unit_direction, rec.normal, roughness);
+        //     let scattered = Ray::new(
+        //         rec.point,
+        //         reflected + offset,
+        //         r_in.time,
+        //     );
+        //     let attenuation = diffuse;
+        //     if Vec3::dot(&scattered.direction, &rec.normal) > 0.0 {
+        //         return Some((Some(scattered), attenuation, "specular".to_string(), emission));
+        //     } else {
+        //         return None;
+        //     }
+        // }
         // refraction
-        if 1.0 - refraction < roll {
+        if 1.0 - refraction < roll && !(sin_theta * refraction_ratio > 1.0) {
             let cannot_refract: bool = sin_theta * refraction_ratio > 1.0;
-            let mut direction: Vec3;
-            if cannot_refract
-                || Principle::reflectance(cos_theta, refraction_ratio) > random_float()
-            {
-                direction = Vec3::reflect(unit_direction, rec.normal);
-            } else {
-                direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
+            let direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
                             + Vec3::random_unit_vector() * roughness;
-            }
+
             let scattered = Ray::new(rec.point, direction, r_in.time);
             let attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
 
             return Some((Some(scattered), attenuation, "refraction".to_string(), emission));
-
-      
 
         } else {      
             // light selection
@@ -314,24 +306,16 @@ impl Scatterable for Principle {
                 pdf_val = distance_squared / (light_cosine * quad_light.area);
             }
          
-            if specular_weight / (specular_weight + diffuse_weight) > roll {
+            let specular_prob = specular_weight / (specular_weight + diffuse_weight);
+            if specular_prob > roll {
                 // specular
-                let r = if roughness == 0.0 {0.01} else {roughness*roughness / 2.0};
+                let r = if roughness == 0.0 {0.01} else {roughness};
                 let v = -r_in.direction.unit_vector();
                 let n = rec.normal.unit_vector();
-                let mut h = n;
-                let mut l = n;
 
-                let direct = false;
-                if direct {
-                    // sample a light source
-                    l = to_light.unit_vector();
-                    h = (v + l).unit_vector();
-                } else{
-                    // random sample based on ggx distribution
-                    h = ggx_sample(r, n);
-                    l = (2.0 * v.dot(&h) * h - v);
-                }          
+                // random sample based on ggx distribution
+                let h = ggx_sample(r, n);
+                let l = (2.0 * v.dot(&h) * h - v);
 
                 // dots
                 let ndv = n.dot(&v);
@@ -343,28 +327,26 @@ impl Scatterable for Principle {
                 let d: f64 = ggx_distribution(ndh, r);
                 let g: f64 = schlick_masking(ndl, ndv, r);
                 let f: f64 = schlick_fresnel(0.05, ldh);
-                let mut ggx = 0.0;
-                if direct{
-                    // ggx = d * g * f / (4.0 * ndl * ndv);
-                    ggx = d * g * f / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));
-                } else {
-                    ggx = d * g * f / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));
-                    // ggx = d * g * f / (4.0 * ndl * ndv);
-                }
-                let direct_pdf = d * ndh / (4.0 * h.dot(&v));
-                let indirect_pdf = d * ndh / (4.0 * ldh);
-                let pdf = direct_pdf * 0.0 + indirect_pdf * 1.0;
-                let attenuation = specular * ggx / pdf;
+                let ggx = d * g * f / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));
+                // let ggx = d * g * f / (4.0 * ndl * ndv);
+                let pdf = d * ndh / (4.0 * ldh);
+                
+                let mut attenuation = specular * ggx / (pdf * specular_prob);
                 let scattered =  Ray::new(rec.point, l, r_in.time); 
+
+                if 1.0 - metallic < roll {
+                    attenuation = diffuse;
+                }
 
                 // simple specular implementation
                 // let offset = Vec3::random_unit_vector() * roughness;
                 // let reflected_dir = Vec3::reflect(unit_direction, rec.normal) + offset; 
                 // scattered =  Ray::new(rec.point, reflected_dir, r_in.time);  
 
-                return Some((Some(scattered), attenuation * 2.0, "specular".to_string(), emission))  
+                return Some((Some(scattered), attenuation, "specular".to_string(), emission))  
 
             } else {
+                
                 let mut attenuation = diffuse * diffuse_weight; 
                 let cosine_pdf = CosinePdf::new(rec.normal);
                 let light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
@@ -376,14 +358,14 @@ impl Scatterable for Principle {
                 let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5;
                 let mut pdf = Principle::scatter_pdf(&r_in, &rec, &scattered);
                 pdf = pdf / (cosine_pdf_val + light_pdf_val);
-                attenuation = attenuation * pdf;
+                attenuation = attenuation * pdf / (1.0 - specular_prob);
 
                 // simple diffuse implementation
                 // let dir = rec.normal + Vec3::random_unit_vector();
                 // scattered = Ray::new(rec.point, cosine_pdf.generate(), r_in.time);
                 // attenuation = diffuse * diffuse_weight;
 
-                return Some((Some(scattered), attenuation * 2.0, "diffuse".to_string(), emission)) 
+                return Some((Some(scattered), attenuation, "diffuse".to_string(), emission)) 
 
             }      
             None     
@@ -421,23 +403,6 @@ fn reflect(i: &Vec3, n: &Vec3) -> Vec3 {
     return *i - *n * 2.0 *i.dot(n);
 }
 
-
-fn beckmann_offset(direction: Vec3, normal: Vec3, roughness: f64) -> Vec3 {
-    let e = 1e-6;
-    let mut r = roughness;
-    if roughness == 0.0 {
-        r = e;
-    } else if roughness == 1.0 {
-        r = 1.0 - e;
-    }
-    let alpha = f64::sqrt(2.0) * r;
-    let microfacet_normal = Vec3::random_unit_vector();
-    let halfway = Vec3::reflect(direction, normal) + microfacet_normal * alpha;
-    let cos_theta_h = Vec3::dot(&halfway, &normal);
-    let beckmann_d = (f64::exp(-f64::tan(cos_theta_h).powf(2.0) / alpha.powf(2.0))) / (PI * alpha.powf(2.0) * cos_theta_h.powf(4.0));
-
-    return microfacet_normal * beckmann_d;
-}
 
 fn specular_pdf(cos_theta: f64, refraction_ratio: f64) -> f64 {
     let fresnel = Principle::reflectance(cos_theta, refraction_ratio);
@@ -505,15 +470,15 @@ fn schlick_fresnel(f0: f64, ldh: f64) -> f64 {
 
 fn ggx_sample(roughness: f64, normal: Vec3) -> Vec3 {
     let (u, v) = (random_float(), random_float());
-    let b: Vec3 = get_perpendicular(normal).unit_vector();
-    let t: Vec3 = Vec3::cross(&b, &normal).unit_vector();
+    let b: Vec3 = get_perpendicular(normal);
+    let t: Vec3 = Vec3::cross(&b, &normal);
     let a2 = roughness * roughness;
     let cos_theta: f64 = (f64::max(0.0, (1.0 - u) / ((a2 - 1.0) * u + 1.0))).sqrt();
     let sin_theta: f64 = (f64::max(0.0, 1.0 - cos_theta * cos_theta)).sqrt();
     let phi = v * PI * 2.0;
-    let direction = t.unit_vector() * (sin_theta * phi.cos()) + b.unit_vector() * (sin_theta * phi.sin()) + normal * cos_theta;
+    let direction = (t * (sin_theta * phi.cos()) + b * (sin_theta * phi.sin()) + normal * cos_theta);
 
-    direction.unit_vector()
+    direction
 }
 
 

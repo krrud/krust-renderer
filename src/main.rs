@@ -497,7 +497,7 @@ fn main() {
         if sample != 0 {
             progress.inc(1);
         }
-        let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/texture_sky_sunset.exr", false));
+        let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/texture_sky.hdr", false));
         let mut handles = Vec::with_capacity(num_threads);
         for chunk in pixel_chunks.chunks(thread_chunk_size).map(|c| c.to_vec()) {
             let camera = camera.clone();
