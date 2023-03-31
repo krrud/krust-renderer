@@ -248,7 +248,7 @@ impl Scatterable for Principle {
         //     }
         // }
         // refraction
-        if 1.0 - refraction < roll && !(sin_theta * refraction_ratio > 1.0) {
+        if refraction > roll && !(sin_theta * refraction_ratio > 1.0) {
             let cannot_refract: bool = sin_theta * refraction_ratio > 1.0;
             let direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
                             + Vec3::random_unit_vector() * roughness;
@@ -306,14 +306,30 @@ impl Scatterable for Principle {
                 pdf_val = distance_squared / (light_cosine * quad_light.area);
             }
          
+            diffuse_weight -= metallic;
+            let metallic_prob = metallic > roll;
             let specular_prob = specular_weight / (specular_weight + diffuse_weight);
+
             if specular_prob > roll {
-                // specular
+                // reflectance values
+                let silver = Vec3::new(0.97, 0.96, 0.91);
+                let aluminum = Vec3::new(0.91, 0.92, 0.92);
+                let titanium = Vec3::new(0.76, 0.73, 0.69);
+                let iron = Vec3::new(0.77, 0.78, 0.78);
+                let platinum = Vec3::new(0.83, 0.81, 0.78);
+                let gold = Vec3::new(1.0, 0.85, 0.57);
+                let titanium = Vec3::new(0.76, 0.73, 0.69);
+                let iron = Vec3::new(0.77, 0.78, 0.78);
+                let brass = Vec3::new(0.98, 0.90, 0.59);
+                let copper = Vec3::new(0.97, 0.74, 0.62);
+                let basic = Vec3::new(0.04, 0.04, 0.04);
+                
+                // roughness, view angle, normal
                 let r = if roughness == 0.0 {0.01} else {roughness};
                 let v = -r_in.direction.unit_vector();
                 let n = rec.normal.unit_vector();
 
-                // random sample based on ggx distribution
+                // random vector based on ggx distribution
                 let h = ggx_sample(r, n);
                 let l = (2.0 * v.dot(&h) * h - v);
 
@@ -323,20 +339,23 @@ impl Scatterable for Principle {
                 let ldh = l.dot(&h);
                 let ndl = n.dot(&l);
 
-                // ggx 
+                // ggx term and pdf
+                let f0 = if metallic_prob {iron} else {basic};
                 let d: f64 = ggx_distribution(ndh, r);
                 let g: f64 = schlick_masking(ndl, ndv, r);
-                let f: f64 = schlick_fresnel(0.05, ldh);
-                let ggx = d * g * f / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));
+                let f: Color = schlick_fresnel(f0, ldh);
+                let ggx = f * g * d / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));
                 // let ggx = d * g * f / (4.0 * ndl * ndv);
                 let pdf = d * ndh / (4.0 * ldh);
                 
+                // final color composite
                 let mut attenuation = specular * ggx / (pdf * specular_prob);
-                let scattered =  Ray::new(rec.point, l, r_in.time); 
-
-                if 1.0 - metallic < roll {
-                    attenuation = diffuse;
+                if metallic_prob {
+                    attenuation = diffuse * ggx / (pdf * specular_prob);
                 }
+
+                // scattered ray
+                let scattered =  Ray::new(rec.point, l, r_in.time); 
 
                 // simple specular implementation
                 // let offset = Vec3::random_unit_vector() * roughness;
@@ -463,9 +482,9 @@ fn schlick_masking(ndl: f64, ndv: f64, roughness: f64) -> f64 {
     return g_v * g_l
 }
 
-fn schlick_fresnel(f0: f64, ldh: f64) -> f64 {
-    // let f0_vec = Vec3::new(f0, f0, f0);
-    return f0 + (1.0 - f0) * (1.0 - ldh).powf(5.0)
+fn schlick_fresnel(f0: Vec3, ldh: f64) -> Color {
+    let f = f0 + (Vec3::ones() - f0) * (1.0 - ldh).powf(5.0);
+    return Color::new(f.x, f.y, f.z, 1.0)
 }
 
 fn ggx_sample(roughness: f64, normal: Vec3) -> Vec3 {
@@ -478,7 +497,7 @@ fn ggx_sample(roughness: f64, normal: Vec3) -> Vec3 {
     let phi = v * PI * 2.0;
     let direction = (t * (sin_theta * phi.cos()) + b * (sin_theta * phi.sin()) + normal * cos_theta);
 
-    direction
+    direction.unit_vector()
 }
 
 
