@@ -32,13 +32,13 @@ impl Onb {
     }
 
     pub fn build_from_w(&mut self, n: Vec3) {
-        self.axis[2] = n.unit_vector();
+        self.axis[2] = n.normalize();
         let a = if self.w().x().abs() > 0.9 {
             Vec3::new(0.0, 1.0, 0.0)
         } else {
             Vec3::new(1.0, 0.0, 0.0)
         };
-        self.axis[1] = Vec3::cross(&self.w(), &a).unit_vector();
+        self.axis[1] = Vec3::cross(&self.w(), &a).normalize();
         self.axis[0] = Vec3::cross(&self.w(), &self.v());
     }
 }

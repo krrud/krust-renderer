@@ -37,8 +37,8 @@ impl Camera {
         let viewport_height: f64 = 2.0 * h;
         let viewport_width: f64 = aspect_ratio * viewport_height;
 
-        let w = Vec3::unit_vector(&(origin - aim));
-        let u = Vec3::unit_vector(&Vec3::cross(&vup, &w));
+        let w = Vec3::normalize(&(origin - aim));
+        let u = Vec3::normalize(&Vec3::cross(&vup, &w));
         let v = Vec3::cross(&w, &u);
 
         let horizontal = u * viewport_width * focus_distance;

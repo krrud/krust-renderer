@@ -27,7 +27,7 @@ impl CosinePdf {
 
 impl Pdf for CosinePdf {
     fn value(&self, direction: &Vec3) -> f64 {
-        let cosine = Vec3::dot(&direction.unit_vector(), &self.uvw.w());
+        let cosine = Vec3::dot(&direction.normalize(), &self.uvw.w());
         if cosine <= 0.0 { 0.0 } else { cosine / std::f64::consts::PI }
     }
 
@@ -116,7 +116,7 @@ impl Pdf for LightPdf {
             distance_squared = to_light.length_squared();
             
         }
-        to_light.unit_vector()
+        to_light.normalize()
     }
 }
 

@@ -33,8 +33,8 @@ pub struct QuadLight {
 
 impl QuadLight {
     pub fn new(color: Color, intensity: f64, vertices: Vec<Vec3>) -> Self {
-        let x_axis = (vertices[1] - vertices[0]).unit_vector();
-        let y_axis = x_axis.cross(&(vertices[3] - vertices[0])).unit_vector();
+        let x_axis = (vertices[1] - vertices[0]).normalize();
+        let y_axis = x_axis.cross(&(vertices[3] - vertices[0])).normalize();
         let width = (vertices[1] - vertices[0]).length();
         let height = (vertices[3] - vertices[0]).length();
 
@@ -119,7 +119,7 @@ impl DirectionalLight {
         let cos_theta = (-self.direction).dot(&normal).max(0.0);
         let diffuse = self.color * cos_theta;
 
-        let halfway = (-self.direction + view_dir).unit_vector();
+        let halfway = (-self.direction + view_dir).normalize();
         let cos_alpha = normal.dot(&halfway).max(0.0);
         let specular = self.color * 5.0 * f64::powf(cos_alpha, roughness);
         

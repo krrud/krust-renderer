@@ -62,9 +62,9 @@ impl Tri {
                 let mut normal: Vec3;
                 let uv = (self.uvs[0] * (1.0 - u - v)) + (self.uvs[1] * u) + (self.uvs[2] * v);
                 if self.smooth {
-                    normal = ((self.normals[0] * (1.0-u-v)) + (self.normals[1] * u) + (self.normals[2] * v)).unit_vector();
+                    normal = ((self.normals[0] * (1.0-u-v)) + (self.normals[1] * u) + (self.normals[2] * v)).normalize();
                 } else {
-                    normal = (&edge1).cross(&edge2).unit_vector();
+                    normal = (&edge1).cross(&edge2).normalize();
                 }
                 let front_face = normal.dot(&r.direction) < 0.0;
                 return (true,

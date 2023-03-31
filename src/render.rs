@@ -26,10 +26,11 @@ pub fn ray_color(
     }
 
     if let (true, Some(hit_rec)) = world.hit(&r, 0.0001, INF) {
-        if let Some((scattered_ray, albedo, lobe, emit)) = hit_rec.material.scatter(&r, &hit_rec, lights) {
+        if let Some((scattered_ray, albedo, lobe, emission)) = hit_rec.material.scatter(&r, &hit_rec, lights) {
             if let Some(ray) = scattered_ray {
                 // sample scene
                 let sample = ray_color(&ray, &world, &lights, depth - 1, max_depth, progressive, skydome, hide_skydome);
+                let emit = if hit_rec.front_face {emission} else {Color::black()};
                 let composite = emit + albedo * sample.beauty;
 
                 // sort lobes
@@ -40,7 +41,7 @@ pub fn ray_color(
                 if lobe == "specular" {composite}
                 else if lobe == "metallic" {composite}
                 else {Color::black()};
-                color.emission = if hit_rec.front_face {emit} else {Color::black()};
+                color.emission = emission;
 
                 // directional lights
                 let mut diffuse_weight = 0.0;
@@ -71,7 +72,7 @@ pub fn ray_color(
                     } 
                     roughness = (1.0 - roughness).powf(4.0) * 1000.0 + 3.5;
 
-                    let view_dir = -(r.direction).unit_vector();
+                    let view_dir = -(r.direction).normalize();
                     let dir_light = DirectionalLight::new(Vec3::new(-0.4494639595455351, 0.6829063708571647, -0.5758654684145821), Color::white(), 0.5);
                     let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe);
     
@@ -99,7 +100,7 @@ pub fn ray_color(
     }
     match skydome {
         Some(ref sky) => {
-            let unit_direction = Vec3::unit_vector(&r.direction);
+            let unit_direction = Vec3::normalize(&r.direction);
             let rotation_degrees: f64 = 60.0;// crab rotation 60.0
             let rotation_radians = rotation_degrees.to_radians();
             let phi = unit_direction.z.atan2(unit_direction.x) + rotation_radians;
@@ -129,12 +130,12 @@ pub fn ray_color(
         },
         None => {
 
-            let unit_direction = Vec3::unit_vector(&r.direction);
+            let unit_direction = Vec3::normalize(&r.direction);
             let t = 0.5 * (unit_direction.y() + 1.0);
             let gradient_color = Color::new(0.63, 0.75, 1.0, if hide_skydome {0.0} else {1.0});
             let gradient = Color::new(1.0, 1.0, 1.0, if hide_skydome {0.0} else {1.0}) * (1.0 - t) + gradient_color * t;
             return Lobes {
-                beauty: gradient*gradient,//Color::black(),
+                beauty: Color::black(),
                 diffuse: Color::black(),
                 specular: Color::black(),
                 albedo: Color::black(), 

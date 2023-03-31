@@ -52,7 +52,7 @@ impl Sphere {
             for root in [root_a, root_b].iter() {
                 if *root < t_max && *root > t_min {
                     let p = r.at(*root);
-                    let normal = ((p - self.center(r.time)) / self.radius).unit_vector();
+                    let normal = ((p - self.center(r.time)) / self.radius).normalize();
                     let front_face = r.direction.dot(&normal) < 0.0;
 
                     let theta = f64::acos(-p.y);

@@ -69,7 +69,7 @@ impl Vec3 {
         }
     }
 
-    pub fn unit_vector(&self) -> Vec3 {
+    pub fn normalize(&self) -> Vec3 {
         let length = self.length();
         Vec3::new(self.x / length, self.y / length, self.z / length)
     }
@@ -85,7 +85,7 @@ impl Vec3 {
 
     pub fn random_unit_vector2() -> Vec3 {
         let rand = Vec3::random_in_unit_sphere();
-        let mut scatter = Vec3::unit_vector(&rand);
+        let mut scatter = Vec3::normalize(&rand);
         if Vec3::near_zero(&scatter)
             || scatter.x().is_nan()
             || scatter.y().is_nan()
@@ -98,14 +98,14 @@ impl Vec3 {
 
     pub fn random_unit_vector() -> Vec3 {
         let rand = Vec3::random_in_unit_sphere();
-        let mut scatter = Vec3::unit_vector(&rand);
+        let mut scatter = Vec3::normalize(&rand);
         if Vec3::near_zero(&scatter)
             || scatter.x().is_nan()
             || scatter.y().is_nan()
             || scatter.z().is_nan()
         {
             let rand = Vec3::random_in_unit_sphere();
-            scatter = Vec3::unit_vector(&rand);
+            scatter = Vec3::normalize(&rand);
         }
         scatter
     }
@@ -157,11 +157,11 @@ impl Vec3 {
         let y = r * phi.sin();
         let z = cos_theta;
         let t = Vec3::new(x, y, z);
-        let u = self.unit_vector();
-        let w = Vec3::cross(&u, &t).unit_vector();
+        let u = self.normalize();
+        let w = Vec3::cross(&u, &t).normalize();
         let v = Vec3::cross(&w, &u);
         let d = u * t.z + v * t.y + w * t.x;
-        return d.unit_vector();
+        return d.normalize();
     }
 
     pub fn cosine_weighted_direction(&self, normal: &Vec3) -> Vec3 {
@@ -176,10 +176,10 @@ impl Vec3 {
             Vec3::new(1.0, 0.0, 0.0)
         }
         .cross(w)
-        .unit_vector();
+        .normalize();
         let v = w.cross(&u);
 
-        let direction = (u * r1.cos() * r2s + v * r1.sin() * r2s + *w * (1.0 - r2)).unit_vector();
+        let direction = (u * r1.cos() * r2s + v * r1.sin() * r2s + *w * (1.0 - r2)).normalize();
 
         direction
     }
