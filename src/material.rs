@@ -248,168 +248,199 @@ impl Scatterable for Principle {
         //     }
         // }
         // refraction
-        if refraction > roll && !(sin_theta * refraction_ratio > 1.0) {
-            let cannot_refract: bool = sin_theta * refraction_ratio > 1.0;
-            let direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
-                            + Vec3::random_unit_vector() * roughness;
+        // if refraction > roll && !(sin_theta * refraction_ratio > 1.0) {
+        //     let cannot_refract: bool = sin_theta * refraction_ratio > 1.0;
+        //     let direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
+        //                     + Vec3::random_unit_vector() * roughness;
 
+        //     let scattered = Ray::new(rec.point, direction, r_in.time);
+        //     let attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
+
+        //     return Some((Some(scattered), attenuation, "refraction".to_string(), emission));
+
+        // } else {      
+        // light selection
+        let mut to_light = Vec3::black();
+        let mut on_light = Vec3::black();
+        let mut distance_squared = 0.0;
+        let mut light_cosine = 0.0;
+        let mut direct_pdf = 0.0;
+        let mut sum_pdf = 0.0;
+        for (i, light) in lights.iter().enumerate() {
+            match light {
+                Object::QuadLight(quad_light) => {
+                    let distance_squared = (quad_light.position - rec.point).length_squared();
+                    sum_pdf += quad_light.area / distance_squared;// * quad_light.power;
+                }
+                _ => {}
+            }
+        }
+
+        let mut chosen_light = None;
+        for (i, light) in lights.iter().enumerate() {
+            match light {
+                Object::QuadLight(quad_light) => {
+                    let distance_squared = (quad_light.position - rec.point).length_squared();
+                    let pdf = quad_light.area / distance_squared;// * quad_light.power;
+                    if chosen_light.is_none() && random_float() < pdf / sum_pdf {
+                        chosen_light = Some(quad_light);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // generate scatter direction based on pdf
+        if let Some(quad_light) = chosen_light {
+            // Generate a random point on the selected light
+            let (s, t) = (random_float(), random_float());
+            on_light = quad_light.position
+                + quad_light.x_axis * (s - 0.5) * quad_light.width
+                + quad_light.y_axis * (t - 0.5) * quad_light.height;  
+
+            // Compute the direction to the random point on the light
+            to_light = on_light - rec.point;
+            to_light = to_light.normalize();
+            direct_pdf = 1.0 / (distance_squared * quad_light.area);// * quad_light.power);
+        }
+        
+
+        diffuse_weight = clamp(diffuse_weight - metallic - refraction, 0.0, 1.0);
+        let metallic_prob = metallic > roll;
+        let refraction_prob = refraction > roll;
+        let specular_prob = specular_weight / (specular_weight + diffuse_weight);
+
+        // refraction
+        let can_refract = !(sin_theta * refraction_ratio > 1.0);
+        if refraction > roll * 2.0 && can_refract {  
+            
+            // cheap opacity
+            let mut direction = unit_direction;
+
+            // physically based refraction
+            let real_refraction = false;
+            if real_refraction {
+                direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
+                                + Vec3::random_unit_vector() * roughness;
+            }                
+
+            // output scatter direction and attenuation
             let scattered = Ray::new(rec.point, direction, r_in.time);
             let attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
 
-            return Some((Some(scattered), attenuation, "refraction".to_string(), emission));
-
-        } else {      
-            // light selection
-            let mut to_light = Vec3::black();
-            let mut on_light = Vec3::black();
-            let mut distance_squared = 0.0;
-            let mut light_cosine = 0.0;
-            let mut direct_pdf = 0.0;
-            let mut sum_pdf = 0.0;
-            for (i, light) in lights.iter().enumerate() {
-                match light {
-                    Object::QuadLight(quad_light) => {
-                        let distance_squared = (quad_light.position - rec.point).length_squared();
-                        sum_pdf += quad_light.area / distance_squared;// * quad_light.power;
-                    }
-                    _ => {}
-                }
-            }
-
-            let mut chosen_light = None;
-            for (i, light) in lights.iter().enumerate() {
-                match light {
-                    Object::QuadLight(quad_light) => {
-                        let distance_squared = (quad_light.position - rec.point).length_squared();
-                        let pdf = quad_light.area / distance_squared;// * quad_light.power;
-                        if chosen_light.is_none() && random_float() < pdf / sum_pdf {
-                            chosen_light = Some(quad_light);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            // generate scatter direction based on pdf
-            if let Some(quad_light) = chosen_light {
-                // Generate a random point on the selected light
-                let (s, t) = (random_float(), random_float());
-                on_light = quad_light.position
-                    + quad_light.x_axis * (s - 0.5) * quad_light.width
-                    + quad_light.y_axis * (t - 0.5) * quad_light.height;  
-
-                // Compute the direction to the random point on the light
-                to_light = on_light - rec.point;
-                to_light = to_light.normalize();
-                direct_pdf = 1.0 / (distance_squared * quad_light.area);// * quad_light.power);
-            }
-         
-
-            diffuse_weight -= metallic;
-            let metallic_prob = metallic > roll;
-            let specular_prob = specular_weight / (specular_weight + diffuse_weight);
-
-            if specular_prob > roll {
-                // reflectance values
-                // let iron = Vec3::new(0.77, 0.78, 0.78);
-                // let silver = Vec3::new(0.97, 0.96, 0.91);
-                // let aluminum = Vec3::new(0.91, 0.92, 0.92);
-                // let titanium = Vec3::new(0.76, 0.73, 0.69);
-                // let iron = Vec3::new(0.77, 0.78, 0.78);
-                // let platinum = Vec3::new(0.83, 0.81, 0.78);
-                // let gold = Vec3::new(1.0, 0.85, 0.57);
-                // let titanium = Vec3::new(0.76, 0.73, 0.69);
-                // let brass = Vec3::new(0.98, 0.90, 0.59);
-                // let copper = Vec3::new(0.97, 0.74, 0.62);
-
-                let basic = Vec3::new(0.04, 0.04, 0.04);
-                let metal = Vec3::new(0.5, 0.5, 0.5);
-                
-                // roughness, view angle, normal
-                let r = if roughness == 0.0 {0.001} else {roughness};
-                let v = -r_in.direction.normalize();
-                let n = rec.normal.normalize();
-                let mut l = n;
-                let mut h = n;
-                let mut pdf = 0.0;
-
-                let direct = random_float() < 0.5;
-                if direct {
-                    // sample a light                
-                    l = to_light;
-                    h = (v + l).normalize();
-                } else {
-                    // random ggx microfacet vector
-                    h = ggx_sample(r, n).normalize();
-                    l = (2.0 * v.dot(&h) * h - v).normalize();
-                }
-
-                // scattered ray
-                let scattered =  Ray::new(rec.point, l, r_in.time); 
-
-                // dots
-                let ndv = clamp(n.dot(&v), 0.0, 1.0);
-                let ndh = clamp(n.dot(&h), 0.0, 1.0);
-                let ndl = clamp(n.dot(&l), 0.0, 1.0);
-                let ldh = clamp(l.dot(&h), 0.0, 1.0);
-
-
-                // ggx term
-                let f0 = if metallic_prob {metal} else {basic};
-                let d: f64 = ggx_distribution(ndh, r);
-                let g: f64 = schlick_masking(ndl, ndv, r);
-                let f: Color = schlick_fresnel(f0, ldh);
-                let ggx =  f * g * d / (4.0 * ndv / ndl);      
-                // let ggx = f * g * d / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));         
-                // let ggx = f * g * d / (4.0 * ndl / ndv * ndh);   
-
-                // calculate weights
-                let mut light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
-                let direct_pdf = light_pdf.value(&scattered.direction);
-                let indirect_pdf = d * ndh / (4.0 * ldh);
-                let weights = direct_pdf * 0.5 + indirect_pdf * 0.5;                  
-
-                // final color composite
-                let mut attenuation = specular * ggx / (weights * specular_prob);
-                if metallic_prob {
-                    attenuation = diffuse * ggx / (weights * specular_prob);
-                }
-
-                // simple specular implementation
-                // let offset = Vec3::random_unit_vector() * roughness;
-                // let reflected_dir = Vec3::reflect(unit_direction, rec.normal) + offset; 
-                // scattered =  Ray::new(rec.point, reflected_dir, r_in.time);  
-
-                return Some((Some(scattered), attenuation, "specular".to_string(), emission))  
-
-            } else {
-                
-                let mut attenuation = diffuse * diffuse_weight; 
-                let cosine_pdf = CosinePdf::new(rec.normal);
-                let light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
-                let mut scattered = Ray::new(rec.point, cosine_pdf.generate(), r_in.time);
-                let direct = random_float() > 0.5;
-                if direct {          
-                    scattered.direction = to_light;               
-                }
-                let cosine_pdf_val = cosine_pdf.value(&scattered.direction) * 0.5;
-                let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5;
-                let mut pdf = Principle::scatter_pdf(&r_in, &rec, &scattered);
-                pdf = pdf / (cosine_pdf_val + light_pdf_val);
-                attenuation = attenuation * pdf / (1.0 - specular_prob);
-
-                // simple diffuse implementation
-                // let dir = rec.normal + Vec3::random_unit_vector();
-                // scattered = Ray::new(rec.point, cosine_pdf.generate(), r_in.time);
-                // attenuation = diffuse * diffuse_weight;
-
-                return Some((Some(scattered), attenuation, "diffuse".to_string(), emission)) 
-
-            }      
-            None     
+            return Some((Some(scattered), attenuation * 2.0, "refraction".to_string(), emission));
         } 
-    }
+        
+        // specular and metallic
+        if specular_prob > roll {
+            // reflectance values
+            // let iron = Vec3::new(0.77, 0.78, 0.78);
+            // let silver = Vec3::new(0.97, 0.96, 0.91);
+            // let aluminum = Vec3::new(0.91, 0.92, 0.92);
+            // let titanium = Vec3::new(0.76, 0.73, 0.69);
+            // let iron = Vec3::new(0.77, 0.78, 0.78);
+            // let platinum = Vec3::new(0.83, 0.81, 0.78);
+            // let gold = Vec3::new(1.0, 0.85, 0.57);
+            // let titanium = Vec3::new(0.76, 0.73, 0.69);
+            // let brass = Vec3::new(0.98, 0.90, 0.59);
+            // let copper = Vec3::new(0.97, 0.74, 0.62);
+
+            let basic = Vec3::new(0.04, 0.04, 0.04);
+            let metal = Vec3::new(0.5, 0.5, 0.5);
+            
+            // roughness, view angle, normal
+            let r = if roughness == 0.0 {0.001} else {roughness};
+            let v = -r_in.direction.normalize();
+            let mut n = rec.normal.normalize();
+            let mut l = n;
+            let mut h = n;
+            
+            // on axis check
+            let t = 0.02;
+            if n.x > 1.0-t && n.y < t && n.z < t ||
+            n.x < t && n.y > 1.0-t && n.z < t ||
+            n.x < t && n.y < t && n.z > 1.0-t {
+                n = n + Vec3::random_unit_vector() * roughness;
+            }
+
+            let direct = random_float() < 0.5;
+            if direct {
+                // sample a light 
+                let light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
+                let light_dir = light_pdf.generate();               
+                l = to_light;
+                h = (v + l).normalize();
+            } else {
+                // random ggx microfacet vector
+                h = ggx_sample(r, n).normalize();
+                l = (2.0 * v.dot(&h) * h - v).normalize();
+            }
+
+            // scattered ray
+            let scattered =  Ray::new(rec.point, l, r_in.time); 
+
+            // dots
+            let ndv = clamp(n.dot(&v), 0.0, 1.0);
+            let ndh = clamp(n.dot(&h), 0.0, 1.0);
+            let ndl = clamp(n.dot(&l), 0.0, 1.0);
+            let ldh = clamp(l.dot(&h), 0.0, 1.0);
+
+            // ggx term
+            let f0 = if metallic_prob {metal} else {basic};
+            let d: f64 = ggx_distribution(ndh, r);
+            let g: f64 = schlick_masking(ndl, ndv, r);
+            let f: Color = schlick_fresnel(f0, ldh);
+            let ggx =  f * g * d / f64::max((4.0 * ndl), 1e-5);      
+            // let ggx = f * g * d / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));         
+            // let ggx = f * g * d / (4.0 * ndl / ndv * ndh);   
+
+            // calculate weights
+            let light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
+            let direct_pdf = light_pdf.value(&scattered.direction);
+            let indirect_pdf = d * ndh / (4.0 * ldh);
+            let weights = direct_pdf * 0.5 + indirect_pdf * 0.5;                  
+
+            // final color composite
+            let mut attenuation = specular * ggx / (weights * specular_prob);
+            if metallic_prob {
+                attenuation = diffuse * ggx / (weights * specular_prob);
+            }
+
+            // simple specular implementation
+            // let offset = Vec3::random_unit_vector() * roughness;
+            // let reflected_dir = Vec3::reflect(unit_direction, rec.normal) + offset; 
+            // scattered =  Ray::new(rec.point, reflected_dir, r_in.time);  
+
+            return Some((Some(scattered), attenuation, "specular".to_string(), emission))    
+
+        } else {            
+            // diffuse
+            let cosine_pdf = CosinePdf::new(rec.normal);
+            let mut scattered = Ray::new(rec.point, cosine_pdf.generate(), r_in.time);
+
+            // directly sample lights half the time
+            let direct = random_float() > 0.5;
+            let light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
+            if direct { 
+                let light_dir = light_pdf.generate();         
+                scattered.direction = to_light;               
+            }
+
+            // calcuate weights
+            let cosine_pdf_val = cosine_pdf.value(&scattered.direction) * 0.5;
+            let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5;
+            let mut pdf = Principle::scatter_pdf(&r_in, &rec, &scattered);
+            pdf = pdf / (cosine_pdf_val + light_pdf_val);
+
+            // final color composite
+            let attenuation = diffuse * diffuse_weight * pdf / (1.0 - specular_prob);
+
+            return Some((Some(scattered), attenuation, "diffuse".to_string(), emission)) 
+        }      
+        None     
+    } 
 }
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct Light {

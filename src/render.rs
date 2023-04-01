@@ -107,7 +107,7 @@ pub fn ray_color(
             let theta = (-unit_direction.y).asin();
             let u = 1.0 - (phi + PI) / (2.0 * PI);
             let v = 1.0 - (theta + PI / 2.0) / PI;        
-            let hdr_color = sky.sample(u as f32, v as f32);
+            let mut sky_color = sky.sample(u as f32, v as f32);
 
             if depth == max_depth && hide_skydome {
                 return Lobes {
@@ -119,7 +119,7 @@ pub fn ray_color(
             }
             } else {
                 return Lobes {
-                    beauty: hdr_color,
+                    beauty: sky_color,
                     diffuse: Color::black(),
                     specular: Color::black(),
                     albedo: Color::black(), 
