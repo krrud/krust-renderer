@@ -43,7 +43,7 @@ pub fn ray_color(
                 else {Color::black()};
                 color.emission = emission;
 
-                // directional lights
+                // material properties
                 let mut diffuse_weight = 0.0;
                 let mut specular_weight = 0.0;
                 let mut roughness = 0.0;
@@ -72,6 +72,7 @@ pub fn ray_color(
                     } 
                     roughness = (1.0 - roughness).powf(4.0) * 1000.0 + 3.5;
 
+                    // directional lights
                     let view_dir = -(r.direction).normalize();
                     let dir_light = DirectionalLight::new(Vec3::new(1.0347163712004361, 1.669665321147327, 2.159981280290787), Color::white(), 0.5);
                     let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe)*0.3;
@@ -88,7 +89,8 @@ pub fn ray_color(
                 }
                 
                 // return final composite
-                if color.beauty.sum() < 0.001 && color.emission.sum() < 0.001 {
+                let pixel_sum = color.beauty.sum();
+                if pixel_sum < 0.001 || pixel_sum > 60.0 && color.emission.sum() < 0.001 {
                     return Lobes::empty();
                 } else if color.beauty.has_nan() {
                     return Lobes::empty();

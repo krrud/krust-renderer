@@ -197,6 +197,17 @@ impl Vec3 {
         Vec3::new(x, y, z)
     }
 
+    pub fn tangent_bitangent(&self) -> (Vec3, Vec3) {
+        let up = Vec3::new(0.0, 1.0, 0.0);
+        let tangent = if self.cross(&up).length() < 0.001 {
+            Vec3::new(1.0, 0.0, 0.0)
+        } else {
+            up.cross(&self).normalize()
+        };
+        let bitangent = self.cross(&tangent).normalize();
+        (tangent, bitangent)
+    }
+
 }
 
 impl ops::Add for Vec3 {

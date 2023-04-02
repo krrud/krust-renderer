@@ -1,3 +1,6 @@
+use std::cmp::Ordering;
+
+
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
     pub r: f64,
@@ -29,6 +32,16 @@ impl Color {
 
     pub fn sum(&self) -> f64 {
         self.r + self.g + self.b
+    }
+
+    pub fn max(&self) -> f64 {
+        if self.r > self.g && self.r > self.b{
+            return self.r
+        } else if self.g > self.r && self.g > self.b {
+            return self.g
+        } else {
+            return self.b
+        }
     }
 
     pub fn has_nan(&self) -> bool {
