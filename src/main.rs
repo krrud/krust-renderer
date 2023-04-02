@@ -518,7 +518,7 @@ fn main() {
                         depth,
                         depth,
                         progressive,
-                        &None,//&Some(sky.clone()),
+                        &Some(sky.clone()),
                         false,
                         )
                     ).collect::<Vec<Vec<(u32, u32, Lobes)>>>();

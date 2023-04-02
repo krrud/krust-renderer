@@ -1,5 +1,5 @@
 use crate::ray::Ray;
-use crate::utility::{random_float, random_int, clamp};
+use crate::utility::{random_float, random_int, clamp, INF};
 use crate::vec3::Vec3;
 use crate::color::Color;
 use crate::texture::TextureMap;
@@ -306,14 +306,12 @@ impl Scatterable for Principle {
         
 
         diffuse_weight = clamp(diffuse_weight - metallic - refraction, 0.0, 1.0);
-        let metallic_prob = metallic > roll;
-        let refraction_prob = refraction > roll;
+        let metal = metallic > roll;
+        let refract = refraction > roll * 2.0 && !(sin_theta * refraction_ratio > 1.0);;
         let specular_prob = specular_weight / (specular_weight + diffuse_weight);
 
         // refraction
-        let can_refract = !(sin_theta * refraction_ratio > 1.0);
-        if refraction > roll * 2.0 && can_refract {  
-            
+        if refract {          
             // cheap opacity
             let mut direction = unit_direction;
 
@@ -345,8 +343,8 @@ impl Scatterable for Principle {
             // let brass = Vec3::new(0.98, 0.90, 0.59);
             // let copper = Vec3::new(0.97, 0.74, 0.62);
 
-            let basic = Vec3::new(0.04, 0.04, 0.04);
-            let metal = Vec3::new(0.5, 0.5, 0.5);
+            let basic_f0 = Vec3::new(0.04, 0.04, 0.04);
+            let metal_f0 = Vec3::new(0.5, 0.5, 0.5);
             
             // roughness, view angle, normal
             let r = if roughness == 0.0 {0.001} else {roughness};
@@ -365,32 +363,33 @@ impl Scatterable for Principle {
 
             let direct = random_float() < 0.5;
             if direct {
-                // sample a light 
-                let light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
-                let light_dir = light_pdf.generate();               
+                // sample a light                 
+                let light_dir = sample_lights(lights, rec.point);             
                 l = to_light;
                 h = (v + l).normalize();
             } else {
                 // random ggx microfacet vector
-                h = ggx_sample(r, n).normalize();
-                l = (2.0 * v.dot(&h) * h - v).normalize();
+                let ggx_dir = ggx_sample(r, n);
+                l = (2.0 * v.dot(&ggx_dir) * ggx_dir - v).normalize();
+                h = (v + l).normalize();
             }
 
             // scattered ray
             let scattered =  Ray::new(rec.point, l, r_in.time); 
 
             // dots
-            let ndv = clamp(n.dot(&v), 0.0, 1.0);
-            let ndh = clamp(n.dot(&h), 0.0, 1.0);
-            let ndl = clamp(n.dot(&l), 0.0, 1.0);
-            let ldh = clamp(l.dot(&h), 0.0, 1.0);
+            let ndv = f64::max(n.dot(&v), 0.0);
+            let ndh = f64::max(n.dot(&h), 0.0);
+            let ndl = f64::max(n.dot(&l), 0.0);
+            let ldh = f64::max(l.dot(&h), 0.0);
 
             // ggx term
-            let f0 = if metallic_prob {metal} else {basic};
+            let f0 = if metal {metal_f0} else {basic_f0};
             let d: f64 = ggx_distribution(ndh, r);
             let g: f64 = schlick_masking(ndl, ndv, r);
             let f: Color = schlick_fresnel(f0, ldh);
-            let ggx =  f * g * d / f64::max((4.0 * ndl), 1e-5);      
+            let ggx =  f * g * d / (4.0 * ndv /  ndl);//clamp(ndl, 0.01, 1.0)); 
+     
             // let ggx = f * g * d / (4.0 * ndl / f64::max((ndv * ndh), 1e-5));         
             // let ggx = f * g * d / (4.0 * ndl / ndv * ndh);   
 
@@ -402,7 +401,7 @@ impl Scatterable for Principle {
 
             // final color composite
             let mut attenuation = specular * ggx / (weights * specular_prob);
-            if metallic_prob {
+            if metal {
                 attenuation = diffuse * ggx / (weights * specular_prob);
             }
 
@@ -478,7 +477,7 @@ fn specular_pdf(cos_theta: f64, refraction_ratio: f64) -> f64 {
     fresnel / std::f64::consts::PI
 }
 
-fn importance_sample_lights(lights: Vec<Object>, point: Vec3) -> Vec3 {
+fn sample_lights(lights: &Arc<Vec<Object>>, point: Vec3) -> Vec3 {
     let mut to_light = Vec3::black();
     let mut sum_pdf = 0.0;
     for (i, light) in lights.iter().enumerate() {
@@ -520,8 +519,8 @@ fn importance_sample_lights(lights: Vec<Object>, point: Vec3) -> Vec3 {
 }
 
 fn ggx_distribution(ndh: f64, roughness: f64) -> f64 {
-    let a2: f64 = roughness * roughness;
-    let d: f64 = ((ndh * a2 - ndh) * ndh + 1.0);
+    let a2: f64 = (roughness * roughness);
+    let d: f64 = ((ndh * a2 - ndh) * ndh + 1.0);//ndh * ndh * (a2 -1.0 ) + 1.0;
     return a2 / (d * d * PI)
 }
 

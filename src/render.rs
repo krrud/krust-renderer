@@ -73,8 +73,8 @@ pub fn ray_color(
                     roughness = (1.0 - roughness).powf(4.0) * 1000.0 + 3.5;
 
                     let view_dir = -(r.direction).normalize();
-                    let dir_light = DirectionalLight::new(Vec3::new(-0.4494639595455351, 0.6829063708571647, -0.5758654684145821), Color::white(), 0.5);
-                    let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe);
+                    let dir_light = DirectionalLight::new(Vec3::new(1.0347163712004361, 1.669665321147327, 2.159981280290787), Color::white(), 0.5);
+                    let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe)*0.3;
     
                     // if !dir_light.shadow(&hit_rec.point, &world){
                     //     if lobe == "diffuse" {
