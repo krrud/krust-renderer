@@ -207,7 +207,6 @@ impl Vec3 {
         let bitangent = self.cross(&tangent).normalize();
         (tangent, bitangent)
     }
-
 }
 
 impl ops::Add for Vec3 {

@@ -26,78 +26,77 @@ pub fn ray_color(
     }
 
     if let (true, Some(hit_rec)) = world.hit(&r, 0.0001, INF) {
-        if let Some((scattered_ray, albedo, lobe, emission)) = hit_rec.material.scatter(&r, &hit_rec, lights) {
-            if let Some(ray) = scattered_ray {
-                // sample scene
-                let sample = ray_color(&ray, &world, &lights, depth - 1, max_depth, progressive, skydome, hide_skydome);
-                let emit = if hit_rec.front_face {emission} else {Color::black()};
-                let composite = emit + albedo * sample.beauty;
+        if let Some((ray, albedo, emission, lobe)) = hit_rec.material.scatter(&r, &hit_rec, lights) {
+            // sample scene
+            let sample = ray_color(&ray, &world, &lights, depth - 1, max_depth, progressive, skydome, hide_skydome);
+            let emit = if hit_rec.front_face {emission} else {Color::black()};
+            let composite = emit + albedo * sample.beauty;
 
-                // sort lobes
-                let mut color = Lobes::empty();
-                color.beauty = composite;
-                color.diffuse = if lobe == "diffuse" {composite} else {Color::black()};
-                color.specular = 
-                if lobe == "specular" {composite}
-                else if lobe == "metallic" {composite}
-                else {Color::black()};
-                color.emission = emission;
+            // sort lobes
+            let mut color = Lobes::empty();
+            color.beauty = composite;
+            color.diffuse = if lobe == "diffuse" {composite} else {Color::black()};
+            color.specular = 
+            if lobe == "specular" {composite}
+            else if lobe == "metallic" {composite}
+            else {Color::black()};
+            color.emission = emission;
 
-                // material properties
-                let mut diffuse_weight = 0.0;
-                let mut specular_weight = 0.0;
-                let mut roughness = 0.0;
-                
-                if let Material::Principle(principle) = &*hit_rec.material {
-                    diffuse_weight = principle.diffuse_weight;
-                    if let Some(dwt) = &principle.diffuse_weight_texture {
-                        diffuse_weight = principle.diffuse_weight_texture
-                            .as_ref()
-                            .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
-                            .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
-                    } 
-                    specular_weight = principle.specular_weight;
-                    if let Some(rt) = &principle.specular_weight_texture {
-                        specular_weight = principle.specular_weight_texture
-                            .as_ref()
-                            .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
-                            .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
-                    } 
-                    roughness = principle.roughness;
-                    if let Some(rt) = &principle.roughness_texture {
-                        roughness = principle.roughness_texture
-                            .as_ref()
-                            .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
-                            .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
-                    } 
-                    roughness = (1.0 - roughness).powf(4.0) * 1000.0 + 3.5;
+            // material properties
+            let mut diffuse_weight = 0.0;
+            let mut specular_weight = 0.0;
+            let mut roughness = 0.0;
+            
+            if let Material::Principle(principle) = &*hit_rec.material {
+                diffuse_weight = principle.diffuse_weight;
+                if let Some(dwt) = &principle.diffuse_weight_texture {
+                    diffuse_weight = principle.diffuse_weight_texture
+                        .as_ref()
+                        .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
+                        .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+                } 
+                specular_weight = principle.specular_weight;
+                if let Some(rt) = &principle.specular_weight_texture {
+                    specular_weight = principle.specular_weight_texture
+                        .as_ref()
+                        .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
+                        .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+                } 
+                roughness = principle.roughness;
+                if let Some(rt) = &principle.roughness_texture {
+                    roughness = principle.roughness_texture
+                        .as_ref()
+                        .map(|t| t.sample(hit_rec.uv.x, hit_rec.uv.y))
+                        .unwrap_or_else(|| Color::new(0.0, 1.0, 1.0, 1.0)).r;
+                } 
+                roughness = (1.0 - roughness).powf(4.0) * 1000.0 + 3.5;
 
-                    // directional lights
-                    let view_dir = -(r.direction).normalize();
-                    let dir_light = DirectionalLight::new(Vec3::new(1.0347163712004361, 1.669665321147327, 2.159981280290787), Color::white(), 0.5);
-                    let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe)*0.3;
-    
-                    // if !dir_light.shadow(&hit_rec.point, &world){
-                    //     if lobe == "diffuse" {
-                    //         color.beauty = color.beauty + (albedo * dir_light_contrib * diffuse_weight);
-                    //         color.diffuse = color.diffuse + (albedo * dir_light_contrib * diffuse_weight);
-                    //     } else if lobe == "specular" {
-                    //         color.beauty = color.beauty + (dir_light_contrib * specular_weight);
-                    //         color.specular = color.specular + (dir_light_contrib * specular_weight);
-                    //     }                        
-                    // }                    
-                }
-                
-                // return final composite
-                let pixel_sum = color.beauty.sum();
-                if pixel_sum < 0.001 || pixel_sum > 60.0 && color.emission.sum() < 0.001 {
-                    return Lobes::empty();
-                } else if color.beauty.has_nan() {
-                    return Lobes::empty();
-                } else {
-                    return color
-                }                
+                // directional lights
+                let view_dir = -(r.direction).normalize();
+                let dir_light = DirectionalLight::new(Vec3::new(1.0347163712004361, 1.669665321147327, 2.159981280290787), Color::white(), 0.5);
+                let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe)*0.3;
+
+                // if !dir_light.shadow(&hit_rec.point, &world){
+                //     if lobe == "diffuse" {
+                //         color.beauty = color.beauty + (albedo * dir_light_contrib * diffuse_weight);
+                //         color.diffuse = color.diffuse + (albedo * dir_light_contrib * diffuse_weight);
+                //     } else if lobe == "specular" {
+                //         color.beauty = color.beauty + (dir_light_contrib * specular_weight);
+                //         color.specular = color.specular + (dir_light_contrib * specular_weight);
+                //     }                        
+                // }                    
             }
+            
+            // return final composite
+            if color.beauty.sum() < 0.001 && color.emission.sum() < 0.001 {
+                return Lobes::empty()
+            } else if color.beauty.max() > 80.0 && color.emission.sum() < 0.001 {
+                return Lobes::empty()
+            } else if color.beauty.has_nan() {
+                return Lobes::empty()
+            } else {
+                return color
+            }                 
         }
     }
     match skydome {

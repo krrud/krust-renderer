@@ -13,7 +13,7 @@ use crate::vec2::Vec2;
 
 
 pub trait Scatterable {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Option<Ray>, Color, String, Color)>;
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Ray, Color, Color, String)>;
 }
 
 pub trait Emits {
@@ -27,7 +27,7 @@ pub enum Material {
 }
 
 impl Scatterable for Material {
-    fn scatter(&self, ray: &Ray, hit_rec: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Option<Ray>, Color, String, Color)> {
+    fn scatter(&self, ray: &Ray, hit_rec: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Ray, Color, Color, String)> {
         match self {
             Material::Principle(principle) => principle.scatter(ray, hit_rec, lights),
             Material::Light(light) => light.scatter(ray, hit_rec, lights),
@@ -56,6 +56,7 @@ pub struct Principle {
     pub emission: Color,
     pub bump: f64,
     pub bump_strength: f64,
+    pub normal_strength: f64,
     pub diffuse_texture: Option<TextureMap>,
     pub diffuse_weight_texture: Option<TextureMap>,
     pub specular_texture: Option<TextureMap>,
@@ -65,6 +66,7 @@ pub struct Principle {
     pub refraction_texture: Option<TextureMap>,
     pub emission_texture: Option<TextureMap>,
     pub bump_texture: Option<TextureMap>,
+    pub normal_texture: Option<TextureMap>,
 }
 
 impl Principle {
@@ -80,6 +82,7 @@ impl Principle {
         emission: Color,
         bump: f64,
         bump_strength: f64,
+        normal_strength: f64,
         diffuse_texture: Option<TextureMap>,
         diffuse_weight_texture: Option<TextureMap>,
         specular_texture: Option<TextureMap>,
@@ -89,6 +92,7 @@ impl Principle {
         refraction_texture: Option<TextureMap>,
         emission_texture: Option<TextureMap>,
         bump_texture: Option<TextureMap>,
+        normal_texture: Option<TextureMap>,
         
     ) -> Principle {
         Principle {
@@ -103,6 +107,7 @@ impl Principle {
             emission,
             bump,
             bump_strength,
+            normal_strength,
             diffuse_texture,
             diffuse_weight_texture,
             specular_texture,
@@ -111,7 +116,8 @@ impl Principle {
             metallic_texture,
             refraction_texture,
             emission_texture,
-            bump_texture
+            bump_texture,
+            normal_texture,
         }
     }
 
@@ -128,6 +134,7 @@ impl Principle {
             emission: Color::black(),
             bump: 0.0,
             bump_strength: 0.0,
+            normal_strength: 0.0,
             diffuse_texture: None,
             diffuse_weight_texture: None,
             specular_texture: None,
@@ -136,7 +143,8 @@ impl Principle {
             metallic_texture: None,
             refraction_texture: None,
             emission_texture: None,
-            bump_texture: None
+            bump_texture: None,
+            normal_texture: None
         }
     }
     
@@ -159,7 +167,7 @@ impl Emits for Principle {
 }
 
 impl Scatterable for Principle {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Option<Ray>, Color, String, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Ray, Color, Color, String)> {
         // sample textures if available
         let mut diffuse = self.diffuse;
         if let Some(d) = &self.diffuse_texture {
@@ -240,69 +248,59 @@ impl Scatterable for Principle {
             has_bump = true;
         } 
 
+
+        let mut has_normal = false;
+        let mut normal_map = Color::black();
+        if let Some(nm) = &self.normal_texture {
+            normal_map = self.normal_texture
+                .as_ref()
+                .map(|t| t.sample(rec.uv.x, rec.uv.y))
+                .unwrap_or_else(|| Color::black());
+                has_normal = true;
+        } 
+
+        // bump map
         let mut perturbed_normal = rec.normal;
-        if has_bump {
-            let (tangent, bitangent) = rec.normal.tangent_bitangent();
+        let (t, b) = rec.normal.tangent_bitangent();
+        if has_bump {            
             let bump_gradient = bump_gradient * self.bump_strength * 10.0;
             perturbed_normal = (
                 rec.normal
-                + (bump_gradient.g * tangent * rec.normal)
-                + (bump_gradient.r * bitangent * rec.normal))
+                + (bump_gradient.g * t * rec.normal)
+                + (bump_gradient.r * b * rec.normal))
                 .normalize();     
         }
 
-        // clip invalid weights
-        diffuse_weight = f64::max(f64::min(diffuse_weight, 1.0), 0.0);
-        specular_weight = f64::max(f64::min(specular_weight, 1.0), 0.0);
+        //  normal map
+        if has_normal {
+            let normal_offset = normal_map.to_normal_vec(t, b, rec.normal) * self.normal_strength;
+            perturbed_normal = (perturbed_normal + normal_offset).normalize();
+        }
 
-        let roll = random_float();
+        // unit direction
         let unit_direction = r_in.direction.normalize();
-        let cos_theta = f64::min(Vec3::dot(&(unit_direction * -1.0), &perturbed_normal), 1.0);
-        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
-        let refraction_ratio = if cos_theta > 0.0 {
-            if rec.front_face {
-                1.0 / self.ior
-            } else {
-                self.ior
-            }
-        } else {
-            self.ior
-        };
-        // refraction
-        // if refraction > roll && !(sin_theta * refraction_ratio > 1.0) {
-        //     let cannot_refract: bool = sin_theta * refraction_ratio > 1.0;
-        //     let direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
-        //                     + Vec3::random_unit_vector() * roughness;
 
-        //     let scattered = Ray::new(rec.point, direction, r_in.time);
-        //     let attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
-
-        //     return Some((Some(scattered), attenuation, "refraction".to_string(), emission));
-
-        // } else {      
-        // light selection
-        let mut to_light = Vec3::black();
-        let mut on_light = Vec3::black();
-        let mut distance_squared = 0.0;
-        let mut light_cosine = 0.0;
-        let mut direct_pdf = 0.0;
+        // light pdf
+        let mut to_light = Vec3::zeros();
+        let mut on_light = Vec3::zeros();
         let mut sum_pdf = 0.0;
         for (i, light) in lights.iter().enumerate() {
             match light {
                 Object::QuadLight(quad_light) => {
                     let distance_squared = (quad_light.position - rec.point).length_squared();
-                    sum_pdf += quad_light.area / distance_squared;// * quad_light.power;
+                    sum_pdf += quad_light.area / distance_squared;
                 }
                 _ => {}
             }
         }
 
+        // pick a light
         let mut chosen_light = None;
         for (i, light) in lights.iter().enumerate() {
             match light {
                 Object::QuadLight(quad_light) => {
                     let distance_squared = (quad_light.position - rec.point).length_squared();
-                    let pdf = quad_light.area / distance_squared;// * quad_light.power;
+                    let pdf = quad_light.area / distance_squared;
                     if chosen_light.is_none() && random_float() < pdf / sum_pdf {
                         chosen_light = Some(quad_light);
                     }
@@ -311,43 +309,49 @@ impl Scatterable for Principle {
             }
         }
 
-        // generate scatter direction based on pdf
+        // generate ray direction based on chosen light
         if let Some(quad_light) = chosen_light {
-            // Generate a random point on the selected light
+            // pick a random point on the chosen light
             let (s, t) = (random_float(), random_float());
             on_light = quad_light.position
                 + quad_light.x_axis * (s - 0.5) * quad_light.width
                 + quad_light.y_axis * (t - 0.5) * quad_light.height;  
 
-            // Compute the direction to the random point on the light
-            to_light = on_light - rec.point;
-            to_light = to_light.normalize();
-            direct_pdf = 1.0 / (distance_squared * quad_light.area);// * quad_light.power);
+            // compute the direction
+            to_light = (on_light - rec.point).normalize();
         }
         
-
+        // compute probability of each lobe
+        let roll = random_float();
         diffuse_weight = clamp(diffuse_weight - metallic - refraction, 0.0, 1.0);
         let metal = metallic > roll;
         let refract = refraction > roll * 2.0;
-        let specular_prob = specular_weight / (specular_weight + diffuse_weight);
+        let mut specular_prob = specular_weight / (specular_weight + diffuse_weight);
 
         // refraction
-        if refract {          
-            // cheap opacity
-            let mut direction = unit_direction;
-
-            // physically based refraction
-            let real_refraction = true;
-            if real_refraction {
+        if refract {               
+            let cos_theta = f64::min(Vec3::dot(&(unit_direction * -1.0), &perturbed_normal), 1.0);
+            let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+            let refraction_ratio = if cos_theta > 0.0 {
+                if rec.front_face {
+                    1.0 / self.ior
+                } else {
+                    self.ior
+                }
+            } else {
+                self.ior
+            };
+            let mut direction = unit_direction + Vec3::random_unit_vector() * roughness; 
+            let real_refract = false;
+            if real_refract {
                 direction = Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
-                                + Vec3::random_unit_vector() * roughness;
-            }                
+                     + Vec3::random_unit_vector() * roughness;
+            }
 
-            // output scatter direction and attenuation
             let scattered = Ray::new(rec.point, direction, r_in.time);
-            let attenuation = Color::new(1.0, 1.0, 1.0, 1.0);
+            let attenuation = Color::white();
 
-            return Some((Some(scattered), attenuation * 2.0, "refraction".to_string(), emission));
+            return Some((scattered, attenuation * 2.0, emission, "refraction".to_string()));
         } 
         
         // specular and metallic
@@ -366,12 +370,12 @@ impl Scatterable for Principle {
             
             // on axis check
             let t = 0.02;
-            if n.x > 1.0-t && n.y < t && n.z < t ||
-            n.x < t && n.y > 1.0-t && n.z < t ||
-            n.x < t && n.y < t && n.z > 1.0-t {
-                n = n + Vec3::random_unit_vector() * roughness;
-            }
+            if n.x > 1.0-t && n.y < t && n.z < t
+            || n.x < t && n.y > 1.0-t && n.z < t
+            || n.x < t && n.y < t && n.z > 1.0-t 
+            {n = n + Vec3::random_unit_vector() * roughness;}
 
+            // determine direction of reflected ray
             let direct = random_float() < 0.5;
             if direct {
                 // sample a light                          
@@ -387,10 +391,10 @@ impl Scatterable for Principle {
             let scattered =  Ray::new(rec.point, l, r_in.time); 
 
             // dots
-            let ndv = clamp(n.dot(&v), 0.0, 1.0);
-            let ndh = clamp(n.dot(&h), 0.0, 1.0);
-            let ndl = clamp(n.dot(&l), 0.0, 1.0);
-            let ldh = clamp(l.dot(&h), 0.0, 1.0);
+            let ndv = f64::max(n.dot(&v), 0.0);
+            let ndh = f64::max(n.dot(&h), 0.0);
+            let ndl = f64::max(n.dot(&l), 0.0);
+            let ldh = f64::max(l.dot(&h), 0.0);
 
             // ggx
             let f0 = if metal {metal_f0} else {basic_f0};
@@ -399,7 +403,7 @@ impl Scatterable for Principle {
             let f: Color = schlick_fresnel(f0, ldh);
             let ggx =  f * g * d / f64::max((4.0 * ndv * ndl), 0.015);
 
-            // calculate weights
+            // compute weights
             let light_pdf = LightPdf::new(lights.clone(), rec.point, rec.normal);
             let direct_weight = light_pdf.value(&scattered.direction);
             let indirect_weight = d * ndh / (4.0 * ldh);
@@ -410,7 +414,7 @@ impl Scatterable for Principle {
             if metal {diffuse * ggx * ndl / (weight * specular_prob)} 
             else {specular * ggx * ndl / (weight * specular_prob)};
 
-            return Some((Some(scattered), attenuation, "specular".to_string(), emission))    
+            return Some((scattered, attenuation, emission, "specular".to_string()))          
 
         } else {            
             // diffuse
@@ -419,13 +423,12 @@ impl Scatterable for Principle {
 
             // directly sample lights half the time
             let direct = random_float() > 0.5;
-            let light_pdf = LightPdf::new(lights.clone(), rec.point, perturbed_normal);
-            if direct { 
-                let light_dir = light_pdf.generate();         
+            if direct {    
                 scattered.direction = to_light;               
             }
 
-            // calcuate weights
+            // compute weights
+            let light_pdf = LightPdf::new(lights.clone(), rec.point, perturbed_normal);
             let cosine_pdf_val = cosine_pdf.value(&scattered.direction) * 0.5;
             let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5;
             let mut pdf = Principle::scatter_pdf(&r_in, &rec, &scattered);
@@ -434,7 +437,7 @@ impl Scatterable for Principle {
             // final color composite
             let attenuation = diffuse * diffuse_weight * pdf / (1.0 - specular_prob);
 
-            return Some((Some(scattered), attenuation, "diffuse".to_string(), emission)) 
+            return Some((scattered, attenuation, emission, "diffuse".to_string()))
         }      
         None     
     } 
@@ -460,8 +463,8 @@ impl Emits for Light {
 }
 
 impl Scatterable for Light {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Option<Ray>, Color, String, Color)> {
-        Some((Some(*r_in), Color::black(), "emission".to_string(), self.emit()))
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord, lights: &Arc<Vec<Object>>) -> Option<(Ray, Color, Color, String)> {
+        Some((*r_in, Color::black(), self.emit(), "emission".to_string()))
     }
 }
 
@@ -478,7 +481,7 @@ fn specular_pdf(cos_theta: f64, refraction_ratio: f64) -> f64 {
 }
 
 fn sample_lights(lights: &Arc<Vec<Object>>, point: Vec3) -> Vec3 {
-    let mut to_light = Vec3::black();
+    let mut to_light = Vec3::zeros();
     let mut sum_pdf = 0.0;
     for (i, light) in lights.iter().enumerate() {
         match light {
@@ -555,7 +558,6 @@ fn ggx_sample(roughness: f64, normal: Vec3) -> Vec3 {
 
     direction
 }
-
 
 fn get_perpendicular(vec: Vec3) -> Vec3 {
     let mut smallest = 0;

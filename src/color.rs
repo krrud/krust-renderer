@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
-
+use crate::vec3::Vec3;
+use crate::mat3::Mat3;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
@@ -49,6 +50,27 @@ impl Color {
             return true
         }
         false
+    }
+
+    pub fn to_normal_vec(&self, tangent: Vec3, bitangent: Vec3, surface_normal: Vec3) -> Vec3 {
+        let x = self.r;
+        let y = self.g;
+        let z = self.b;
+
+        // remap from [0, 1] to [-1, 1]
+        let tangent_normal = Vec3::new(x * 2.0 - 1.0, y * 2.0 - 1.0, z * 2.0 - 1.0);
+
+        // construct the transformation matrix
+        let tangent_matrix = Mat3::new([
+            [tangent.x, bitangent.x, surface_normal.x],
+            [tangent.y, bitangent.y, surface_normal.y],
+            [tangent.z, bitangent.z, surface_normal.z]
+            ]);
+
+        // transform the tangent space normal to world space
+        let world_normal = tangent_matrix * tangent_normal;
+
+        return world_normal
     }
 }
 

@@ -4,7 +4,6 @@ mod material;
 mod ray;
 mod sphere;
 mod tri;
-// mod trimesh;
 mod utility;
 mod vec3;
 mod vec2;
@@ -17,6 +16,7 @@ mod texture;
 mod lights;
 mod onb;
 mod pdf;
+mod mat3;
 extern crate num_cpus;
 use crate::render::{ray_color, get_pixel_chunks, render_chunk};
 use crate::bvh::Bvh;
@@ -147,6 +147,7 @@ fn main() {
         );
         let bump = mat["bump"][0].as_f64().unwrap();
         let bump_strength = mat["bump_strength"].as_f64().unwrap();
+        let normal_strength = mat["normal_strength"].as_f64().unwrap();
         
         // textures
         let mut diffuse_tex = None;
@@ -203,6 +204,12 @@ fn main() {
             bump_tex = Some(TextureMap::new(&bt, true))
         };
 
+        let mut normal_tex = None;
+        let nt = mat["normal_tex"].to_string().replace(['"'], "");
+        if nt != "" {
+            normal_tex = Some(TextureMap::new(&nt, true))
+        };
+
         let material = Material::Principle(Principle::new(
             diffuse,
             diffuse_weight,
@@ -215,6 +222,7 @@ fn main() {
             emission,
             bump,
             bump_strength,
+            normal_strength,
             diffuse_tex,
             diffuse_weight_tex,
             specular_tex,
@@ -223,7 +231,8 @@ fn main() {
             metallic_tex,
             refraction_tex,
             emission_tex,
-            bump_tex
+            bump_tex,
+            normal_tex
         ));
         scene_materials.insert(name, Arc::new(material));
     }
@@ -508,7 +517,7 @@ fn main() {
         if sample != 0 {
             progress.inc(1);
         }
-        let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/sky_sunset.jpg", true));
+        let skydome_texture = Arc::new(TextureMap::new("g:/rust_projects/krrust/textures/alley_01.jpg", true));
         let mut handles = Vec::with_capacity(num_threads);
         for chunk in pixel_chunks.chunks(thread_chunk_size).map(|c| c.to_vec()) {
             let camera = camera.clone();

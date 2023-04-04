@@ -5,6 +5,8 @@ use palette::{Srgb, LinSrgb};
 use std::path::Path;
 use rayon::prelude::*;
 use crate::vec3::Vec3;
+use crate::mat3::Mat3;
+
 
 #[derive(Debug, Clone)]
 pub struct TextureMap {
@@ -93,7 +95,6 @@ impl TextureMap {
             Color::new(pixel[0].into(), pixel[1].into(), pixel[2].into(), 1.0)
         }
     }
-
 }
 
 
