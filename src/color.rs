@@ -60,14 +60,14 @@ impl Color {
         // remap from [0, 1] to [-1, 1]
         let tangent_normal = Vec3::new(x * 2.0 - 1.0, y * 2.0 - 1.0, z * 2.0 - 1.0);
 
-        // construct the transformation matrix
+        // transformation matrix
         let tangent_matrix = Mat3::new([
             [tangent.x, bitangent.x, surface_normal.x],
             [tangent.y, bitangent.y, surface_normal.y],
             [tangent.z, bitangent.z, surface_normal.z]
             ]);
 
-        // transform the tangent space normal to world space
+        // transform to world space
         let world_normal = tangent_matrix * tangent_normal;
 
         return world_normal

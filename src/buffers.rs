@@ -11,16 +11,18 @@ pub struct Lobes {
     pub specular: Color,
     pub albedo: Color, 
     pub emission: Color,
+    pub depth: Color,
 }
 
 impl Lobes {
-    pub fn new(self, beauty: Color, diffuse: Color, specular: Color, albedo: Color, emission: Color) -> Self {
+    pub fn new(self, beauty: Color, diffuse: Color, specular: Color, albedo: Color, emission: Color, depth: Color) -> Self {
         Lobes {
             beauty,
             diffuse,
             specular,
             albedo,
             emission,
+            depth,
         }
     }
 
@@ -31,6 +33,7 @@ impl Lobes {
             specular: Color::new(0.0, 0.0, 0.0, 0.0),
             albedo: Color::new(0.0, 0.0, 0.0, 0.0),
             emission: Color::new(0.0, 0.0, 0.0, 0.0),
+            depth: Color::new(0.0, 0.0, 0.0, 0.0),
         }
     }
 
@@ -41,6 +44,7 @@ impl Lobes {
             specular: self.specular / sample_count,
             albedo: self.albedo / sample_count,
             emission: self.emission / sample_count,
+            depth: self.depth / sample_count,
         }
     }
 }
@@ -54,6 +58,7 @@ impl ops::Add for Lobes {
             specular: self.specular + other.specular,
             albedo: self.albedo + other.albedo,
             emission: self.emission + other.emission,
+            depth: self.depth + other.depth,
         }
     }
 }

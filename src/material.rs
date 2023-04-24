@@ -341,6 +341,7 @@ impl Scatterable for Principle {
             } else {
                 self.ior
             };
+
             let mut direction = unit_direction + Vec3::random_unit_vector() * roughness; 
             let real_refract = false;
             if real_refract {
@@ -354,7 +355,7 @@ impl Scatterable for Principle {
             return Some((scattered, attenuation * 2.0, emission, "refraction".to_string()));
         } 
         
-        // specular and metallic
+        // specular
         if specular_prob > roll {
             // reflectance values
             let ior_to_f0 = ((self.ior - 1.0) / (self.ior + 1.0)).powf(2.0);

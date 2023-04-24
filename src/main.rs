@@ -44,7 +44,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::mem::drop;
 use crate::texture::TextureMap;
 use rayon::prelude::*;
-use crate::lights::QuadLight;
+use crate::lights::{QuadLight, DirectionalLight};
 
 
 #[show_image::main]
@@ -114,7 +114,8 @@ fn main() {
 
     // init world
     let mut world = HittableList::new();
-    let mut lights: Vec<Object> = vec![];
+    let mut quad_lights: Vec<Object> = vec![];
+    let mut dir_lights: Vec<DirectionalLight> = vec![];
     std::io::stdout().flush();
     println!("\rProcessing materials...");
     let mut scene_materials: HashMap<String, Arc<Material>> = HashMap::new();
@@ -355,10 +356,10 @@ fn main() {
         world.objects.push(Arc::new(new_sphere));
     }
 
-    // get lights
-    let light_count = data["scene"]["light_count"].as_u64().unwrap();
-    for obj in 0..light_count {
-        let vtx_array = &data["scene"]["lights"][obj as usize]["points"]
+    // get quad lights
+    let count = data["scene"]["quad_light_count"].as_u64().unwrap();
+    for obj in 0..count {
+        let vtx_array = &data["scene"]["lights"]["quad"][obj as usize]["points"]
             .as_array()
             .unwrap();
         for i in 0..vtx_array.len() {
@@ -383,32 +384,55 @@ fn main() {
                 vtx_array[i][3][2].as_f64().unwrap(),
             );
 
-            let c = data["scene"]["lights"][obj as usize]["color"]
+            let c = data["scene"]["lights"]["quad"][obj as usize]["color"]
                 .as_array()
                 .unwrap();
             let r = c[0].as_f64().unwrap();
             let g = c[1].as_f64().unwrap();
             let b = c[2].as_f64().unwrap();
             let color = Color::new(r, g, b, 1.0);
-            let intensity = data["scene"]["lights"][obj as usize]["intensity"]
+            let intensity = data["scene"]["lights"]["quad"][obj as usize]["intensity"]
                 .as_f64()
                 .unwrap();
-
-            // let material = Arc::new(Material::Light(Light::new(color, intensity)));
-            // let vertices = vec![p0, p1, p2];
-            // let vertices2 = vec![p2, p3, p0];
             let vertices = vec![p0, p1, p2, p3];
             let light = Object::QuadLight(QuadLight::new(color, intensity, vertices));            
-            lights.push(light);
+            quad_lights.push(light);
             let vertices = vec![p0, p1, p2, p3];
             let light2 = Object::QuadLight(QuadLight::new(color, intensity, vertices));
-            // let tri1 = Object::Tri(Tri::new(vertices, normals, uvs, material.clone(), false));
-            // let tri2 = Object::Tri(Tri::new(vertices2, normals2, uvs2, material.clone(), false));
             world.objects.push(Arc::new(light2));
-            // world.objects.push(Arc::new(tri2));
         }
     }
-    let world_lights = Arc::new(lights);
+
+    // get dir lights
+    let count = data["scene"]["dir_light_count"].as_u64().unwrap();
+    for obj in 0..count {
+        let c = data["scene"]["lights"]["dir"][obj as usize]["color"]
+            .as_array()
+            .unwrap();
+        let r = c[0].as_f64().unwrap();
+        let g = c[1].as_f64().unwrap();
+        let b = c[2].as_f64().unwrap();
+        let color = Color::new(r, g, b, 1.0);
+        let intensity = data["scene"]["lights"]["dir"][obj as usize]["intensity"]
+            .as_f64()
+            .unwrap();
+        let softness = data["scene"]["lights"]["dir"][obj as usize]["softness"]
+        .as_f64()
+        .unwrap();
+        let dir_array = data["scene"]["lights"]["dir"][obj as usize]["direction"]
+            .as_array()
+            .unwrap();
+        let direction = Vec3::new(
+            dir_array[0].as_f64().unwrap(), 
+            dir_array[1].as_f64().unwrap(), 
+            dir_array[2].as_f64().unwrap()
+        );
+        let light = DirectionalLight::new(direction, color, intensity, softness);            
+        dir_lights.push(light);
+    }
+
+    let quad_lights = Arc::new(quad_lights);
+    let dir_lights = Arc::new(dir_lights);
 
     println!("Processing BVH..."); 
     let world_bvh = Arc::new(Object::Bvh(Bvh::new(&mut world.objects, 0.0, 1.0)));
@@ -522,7 +546,8 @@ fn main() {
         for chunk in pixel_chunks.chunks(thread_chunk_size).map(|c| c.to_vec()) {
             let camera = camera.clone();
             let world_bvh = world_bvh.clone();
-            let world_lights = world_lights.clone();
+            let quad_lights = quad_lights.clone();
+            let dir_lights = dir_lights.clone();
             let sky = skydome_texture.clone();
             let handle = thread::spawn(move || {
                 let result = chunk.iter().map(|c|
@@ -534,11 +559,12 @@ fn main() {
                         2,
                         &camera,
                         &world_bvh,
-                        &world_lights,
+                        &quad_lights,
+                        &dir_lights,
                         depth,
                         depth,
                         progressive,
-                        &Some(sky.clone()),
+                        &None,//&Some(sky.clone()),
                         false,
                         )
                     ).collect::<Vec<Vec<(u32, u32, Lobes)>>>();

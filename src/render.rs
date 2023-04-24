@@ -16,19 +16,27 @@ use crate::texture::TextureMap;
 use crate::lights::DirectionalLight;
 use crate::material::{Emits, Light, Material, Principle, Scatterable};
 
+
 pub fn ray_color(   
-    r: &Ray, world: &Object, lights: &Arc<Vec<Object>>, depth: u32, 
-    max_depth: u32, progressive: bool, 
-    skydome: &Option<Arc<TextureMap>>, hide_skydome: bool
+    r: &Ray, 
+    world: &Object, 
+    quad_lights: &Arc<Vec<Object>>, 
+    dir_lights: &Arc<Vec<DirectionalLight>>, 
+    depth: u32, 
+    max_depth: u32, 
+    progressive: bool, 
+    skydome: &Option<Arc<TextureMap>>,
+    hide_skydome: bool
     ) -> Lobes {
+
     if depth <= 0 {
         return Lobes::empty();
     }
 
     if let (true, Some(hit_rec)) = world.hit(&r, 0.0001, INF) {
-        if let Some((ray, albedo, emission, lobe)) = hit_rec.material.scatter(&r, &hit_rec, lights) {
+        if let Some((ray, albedo, emission, lobe)) = hit_rec.material.scatter(&r, &hit_rec, quad_lights) {
             // sample scene
-            let sample = ray_color(&ray, &world, &lights, depth - 1, max_depth, progressive, skydome, hide_skydome);
+            let sample = ray_color(&ray, &world, &quad_lights, &dir_lights, depth - 1, max_depth, progressive, skydome, hide_skydome);
             let emit = if hit_rec.front_face {emission} else {Color::black()};
             let composite = emit + albedo * sample.beauty;
 
@@ -38,7 +46,6 @@ pub fn ray_color(
             color.diffuse = if lobe == "diffuse" {composite} else {Color::black()};
             color.specular = 
             if lobe == "specular" {composite}
-            else if lobe == "metallic" {composite}
             else {Color::black()};
             color.emission = emission;
 
@@ -73,21 +80,21 @@ pub fn ray_color(
 
                 // directional lights
                 let view_dir = -(r.direction).normalize();
-                let dir_light = DirectionalLight::new(Vec3::new(1.0347163712004361, 1.669665321147327, 2.159981280290787), Color::white(), 0.5);
-                let dir_light_contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe)*0.3;
-
-                // if !dir_light.shadow(&hit_rec.point, &world){
-                //     if lobe == "diffuse" {
-                //         color.beauty = color.beauty + (albedo * dir_light_contrib * diffuse_weight);
-                //         color.diffuse = color.diffuse + (albedo * dir_light_contrib * diffuse_weight);
-                //     } else if lobe == "specular" {
-                //         color.beauty = color.beauty + (dir_light_contrib * specular_weight);
-                //         color.specular = color.specular + (dir_light_contrib * specular_weight);
-                //     }                        
-                // }                    
+                for dir_light in dir_lights.iter() {
+                    let contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe);
+                    if !dir_light.shadow(&hit_rec.point, &world){
+                        if lobe == "diffuse" {
+                            color.beauty = color.beauty + (albedo * contrib * diffuse_weight);
+                            color.diffuse = color.diffuse + (albedo * contrib * diffuse_weight);
+                        } else if lobe == "specular" {
+                            color.beauty = color.beauty + (contrib * specular_weight);
+                            color.specular = color.specular + (contrib * specular_weight);
+                        }                        
+                    }   
+                }                   
             }
             
-            // return final composite
+            // cull and clip
             if color.beauty.sum() < 0.001 && color.emission.sum() < 0.001 {
                 return Lobes::empty()
             } else if color.beauty.max() > 80.0 && color.emission.sum() < 0.001 {
@@ -111,13 +118,7 @@ pub fn ray_color(
             let mut sky_color = sky.sample(u as f32, v as f32);
 
             if depth == max_depth && hide_skydome {
-                return Lobes {
-                    beauty: Color::black(),
-                    diffuse: Color::black(),
-                    specular: Color::black(),
-                    albedo: Color::black(), 
-                    emission: Color::black()
-            }
+                return Lobes::empty()
             } else {
                 return Lobes {
                     beauty: sky_color,
@@ -125,6 +126,7 @@ pub fn ray_color(
                     specular: Color::black(),
                     albedo: Color::black(), 
                     emission: Color::black(),
+                    depth: Color::black()
                 }
             }
   
@@ -136,11 +138,12 @@ pub fn ray_color(
             let gradient_color = Color::new(0.63, 0.75, 1.0, if hide_skydome {0.0} else {1.0});
             let gradient = Color::new(1.0, 1.0, 1.0, if hide_skydome {0.0} else {1.0}) * (1.0 - t) + gradient_color * t;
             return Lobes {
-                beauty: Color::black(),
+                beauty: gradient_color*gradient_color,
                 diffuse: Color::black(),
                 specular: Color::black(),
                 albedo: Color::black(), 
                 emission: Color::black(),
+                depth: Color::black(),
             }
         }
     }
@@ -258,7 +261,8 @@ pub fn render_chunk(
     subsamples: u32,
     camera: &Arc<Camera>,
     bvh: &Object,
-    lights: &Arc<Vec<Object>>,
+    quad_lights: &Arc<Vec<Object>>,
+    dir_lights: &Arc<Vec<DirectionalLight>>,
     depth: u32,
     max_depth: u32,
     progressive: bool,
@@ -273,7 +277,7 @@ pub fn render_chunk(
                 let u = (*x as f64 + random_float()) / ((width - 1) as f64);
                 let v = 1.0 - ((*y as f64 + random_float()) / ((height - 1) as f64));
                 let r = camera.get_ray(u, v);
-                let sample = ray_color(&r, bvh, lights, depth, max_depth, progressive, skydome, hide_skydome);
+                let sample = ray_color(&r, bvh, quad_lights, dir_lights, depth, max_depth, progressive, skydome, hide_skydome);
                 sum = sum + sample;
             }
             let color = sum.average_samples(subsamples);
