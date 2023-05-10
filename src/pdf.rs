@@ -60,9 +60,11 @@ impl Pdf for LightPdf {
                 let distance_squared = (hit_rec.point - self.point).length_squared();
                 let cosine = self.normal.dot(&direction).max(0.0);
                 let mut area = 0.0;
+                let mut intensity = 1.0;
                 match light {
                     Object::QuadLight(quad_light) => {
                         area = quad_light.area;
+                        intensity = quad_light.intensity;
                     }
                     _ => {}
                 }

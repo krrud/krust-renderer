@@ -38,11 +38,11 @@ pub fn ray_color(
             // sample scene
             let sample = ray_color(&ray, &world, &quad_lights, &dir_lights, depth - 1, max_depth, progressive, skydome, hide_skydome);
             let emit = if hit_rec.front_face {emission} else {Color::black()};
-            let composite = emit + albedo * sample.beauty;
+            let composite = emit + albedo * sample.rgba;
 
             // sort lobes
             let mut color = Lobes::empty();
-            color.beauty = composite;
+            color.rgba = composite;
             color.diffuse = if lobe == "diffuse" {composite} else {Color::black()};
             color.specular = 
             if lobe == "specular" {composite}
@@ -84,10 +84,10 @@ pub fn ray_color(
                     let contrib = dir_light.irradiance(hit_rec.normal, view_dir, roughness, &lobe);
                     if !dir_light.shadow(&hit_rec.point, &world){
                         if lobe == "diffuse" {
-                            color.beauty = color.beauty + (albedo * contrib * diffuse_weight);
+                            color.rgba = color.rgba + (albedo * contrib * diffuse_weight);
                             color.diffuse = color.diffuse + (albedo * contrib * diffuse_weight);
                         } else if lobe == "specular" {
-                            color.beauty = color.beauty + (contrib * specular_weight);
+                            color.rgba = color.rgba + (contrib * specular_weight);
                             color.specular = color.specular + (contrib * specular_weight);
                         }                        
                     }   
@@ -95,11 +95,11 @@ pub fn ray_color(
             }
             
             // cull and clip
-            if color.beauty.sum() < 0.001 && color.emission.sum() < 0.001 {
+            if color.rgba.sum() < 0.001 && color.emission.sum() < 0.001 {
                 return Lobes::empty()
-            } else if color.beauty.max() > 80.0 && color.emission.sum() < 0.001 {
+            } else if color.rgba.max() > 80.0 && color.emission.sum() < 0.001 {
                 return Lobes::empty()
-            } else if color.beauty.has_nan() {
+            } else if color.rgba.has_nan() {
                 return Lobes::empty()
             } else {
                 return color
@@ -121,12 +121,10 @@ pub fn ray_color(
                 return Lobes::empty()
             } else {
                 return Lobes {
-                    beauty: sky_color,
+                    rgba: sky_color,
                     diffuse: Color::black(),
-                    specular: Color::black(),
-                    albedo: Color::black(), 
+                    specular: Color::black(), 
                     emission: Color::black(),
-                    depth: Color::black()
                 }
             }
   
@@ -138,127 +136,20 @@ pub fn ray_color(
             let gradient_color = Color::new(0.63, 0.75, 1.0, if hide_skydome {0.0} else {1.0});
             let gradient = Color::new(1.0, 1.0, 1.0, if hide_skydome {0.0} else {1.0}) * (1.0 - t) + gradient_color * t;
             return Lobes {
-                beauty: gradient_color*gradient_color,
+                rgba: Color::white(),//gradient_color*gradient_color,
                 diffuse: Color::black(),
                 specular: Color::black(),
-                albedo: Color::black(), 
                 emission: Color::black(),
-                depth: Color::black(),
             }
         }
     }
 }
-
-
-// pub fn render_pixel(
-//     x: u32, 
-//     y: u32,
-//     height: &u32,
-//     width: &u32,
-//     sample: &u16,
-//     buffer_rgba: &Arc<RwLock<Rgba32FImage>>,
-//     buffer_diff: &Arc<RwLock<Rgba32FImage>>,
-//     buffer_spec: &Arc<RwLock<Rgba32FImage>>,
-//     preview: &Arc<RwLock<RgbaImage>>,
-//     camera: &Arc<Camera>,
-//     bvh: &Object,
-//     depth: u32,
-//     max_depth: u32,
-//     progressive: bool,
-//     skydome: &Option<Arc<TextureMap>>,
-//     hide_skydome: bool,
-//     ) -> () {
-        
-//         // get existing rgba vals
-//         let rgba = buffer_rgba.read().unwrap();
-//         let pixel = rgba.get_pixel(x, y);
-//         let previous_rgba =
-//             Color::new(pixel[0] as f64, pixel[1] as f64, pixel[2] as f64, pixel[3] as f64);
-//         drop(rgba);
-
-//         // get existing diffuse vals
-//         let diff = buffer_diff.read().unwrap();
-//         let pixel = diff.get_pixel(x, y);
-//         let previous_diff =
-//             Color::new(pixel[0] as f64, pixel[1] as f64, pixel[2] as f64, pixel[3] as f64);
-//         drop(diff);
-
-//         // get existing specular vals
-//         let spec = buffer_spec.read().unwrap();
-//         let pixel = spec.get_pixel(x, y);
-//         let previous_spec =
-//             Color::new(pixel[0] as f64, pixel[1] as f64, pixel[2] as f64, pixel[3] as f64);
-//         drop(spec);
-
-//         // sample the scene
-//         let u = (x as f64 + random_float()) / ((width - 1) as f64);
-//         let v = 1.0 - ((y as f64 + random_float()) / ((height - 1) as f64));
-//         let r = camera.get_ray(u, v);
-//         let ray_sample = ray_color(&r, bvh, depth, max_depth, progressive, skydome, hide_skydome);
-//         let mut rgba_color = ray_sample.beauty;
-//         let mut diff_color = ray_sample.diffuse;
-//         let mut spec_color = ray_sample.specular;
-
-//         // average in new sample for each lobe
-//         if sample > &0 {
-//             let average = (sample + 1) as f64;
-//             rgba_color = (rgba_color + (previous_rgba * *sample as f64)) /  average;
-//             diff_color = (diff_color + (previous_diff * *sample as f64)) /  average;
-//             spec_color = (spec_color + (previous_spec * *sample as f64)) /  average;
-//         }
-
-//         // update rgba buffer
-//         let mut rgba = buffer_rgba.write().unwrap();
-//         rgba.put_pixel(x, y, 
-//             Rgba([
-//                 rgba_color.r as f32, 
-//                 rgba_color.g as f32, 
-//                 rgba_color.b as f32, 
-//                 rgba_color.a as f32
-//                 ]));
-//         drop(rgba);
-
-//         // update diffuse buffer
-//         let mut diff = buffer_diff.write().unwrap();
-//         diff.put_pixel(x, y, 
-//             Rgba([
-//                 diff_color.r as f32, 
-//                 diff_color.g as f32, 
-//                 diff_color.b as f32, 
-//                 diff_color.a as f32
-//                 ]));
-//         drop(diff);
-
-//         // update specular buffer
-//         let mut spec = buffer_spec.write().unwrap();
-//         spec.put_pixel(x, y, 
-//             Rgba([
-//                 spec_color.r as f32, 
-//                 spec_color.g as f32, 
-//                 spec_color.b as f32, 
-//                 spec_color.a as f32
-//                 ]));
-//         drop(spec);
-
-//         // update preview
-//         let mut preview_buffer = preview.write().unwrap();
-//         preview_buffer.put_pixel(x,y,
-//             Rgba([
-//                 (rgba_color.r.sqrt() * 255.999) as u8,
-//                 (rgba_color.g.sqrt() * 255.999) as u8,
-//                 (rgba_color.b.sqrt() * 255.999) as u8,
-//                 (rgba_color.a * 255.999) as u8,
-//             ]),
-//         );
-//         drop(preview_buffer);
-// }
 
 pub fn render_chunk(
     pixel_chunks: &Vec<(u32, u32)>,
     height: u32,
     width: u32,
     sample: &u16,
-    subsamples: u32,
     camera: &Arc<Camera>,
     bvh: &Object,
     quad_lights: &Arc<Vec<Object>>,
@@ -271,16 +162,11 @@ pub fn render_chunk(
     ) -> Vec<(u32, u32, Lobes)> {
         let mut pixel_colors = Vec::new();
         for pixel in pixel_chunks {
-            let (x, y) = pixel;
-            let mut sum = Lobes::empty();
-            for i in 0..subsamples{                
-                let u = (*x as f64 + random_float()) / ((width - 1) as f64);
-                let v = 1.0 - ((*y as f64 + random_float()) / ((height - 1) as f64));
-                let r = camera.get_ray(u, v);
-                let sample = ray_color(&r, bvh, quad_lights, dir_lights, depth, max_depth, progressive, skydome, hide_skydome);
-                sum = sum + sample;
-            }
-            let color = sum.average_samples(subsamples);
+            let (x, y) = pixel;               
+            let u = (*x as f64 + random_float()) / ((width - 1) as f64);
+            let v = 1.0 - ((*y as f64 + random_float()) / ((height - 1) as f64));
+            let r = camera.get_ray(u, v);
+            let color = ray_color(&r, bvh, quad_lights, dir_lights, depth, max_depth, progressive, skydome, hide_skydome);
             pixel_colors.push((*x, *y, color));
         }
         pixel_colors

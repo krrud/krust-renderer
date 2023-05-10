@@ -1,4 +1,4 @@
-use crate::hit::{Object, Hittable};
+use crate::hit::{Object, Hittable, HitRecord};
 use crate::vec3::Vec3;
 use crate::vec2::Vec2;
 use crate::color::Color;
@@ -12,7 +12,6 @@ use crate::material::{Emits, Light, Material, Principle, Scatterable};
 use std::sync::Arc;
 use crate::aabb::Aabb;
 use crate::hit::BoundingBox;
-use crate::HitRecord;
 
 
 #[derive(Clone)]

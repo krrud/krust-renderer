@@ -248,7 +248,6 @@ impl Scatterable for Principle {
             has_bump = true;
         } 
 
-
         let mut has_normal = false;
         let mut normal_map = Color::black();
         if let Some(nm) = &self.normal_texture {
@@ -284,6 +283,7 @@ impl Scatterable for Principle {
         let mut to_light = Vec3::zeros();
         let mut on_light = Vec3::zeros();
         let mut sum_pdf = 0.0;
+        let mut pdf_val = 0.0;
         for (i, light) in lights.iter().enumerate() {
             match light {
                 Object::QuadLight(quad_light) => {
@@ -303,6 +303,7 @@ impl Scatterable for Principle {
                     let pdf = quad_light.area / distance_squared;
                     if chosen_light.is_none() && random_float() < pdf / sum_pdf {
                         chosen_light = Some(quad_light);
+                        pdf_val = pdf / sum_pdf;
                     }
                 }
                 _ => {}
@@ -318,7 +319,7 @@ impl Scatterable for Principle {
                 + quad_light.y_axis * (t - 0.5) * quad_light.height;  
 
             // compute the direction
-            to_light = (on_light - rec.point).normalize();
+            to_light = on_light - rec.point;
         }
         
         // compute probability of each lobe
@@ -431,7 +432,7 @@ impl Scatterable for Principle {
             // compute weights
             let light_pdf = LightPdf::new(lights.clone(), rec.point, perturbed_normal);
             let cosine_pdf_val = cosine_pdf.value(&scattered.direction) * 0.5;
-            let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5;
+            let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5 / pdf_val as f64;
             let mut pdf = Principle::scatter_pdf(&r_in, &rec, &scattered);
             pdf = pdf / (cosine_pdf_val + light_pdf_val);
 
