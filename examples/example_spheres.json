@@ -1,0 +1,1141 @@
+{
+    "scene": {
+        "meshes": [],
+        "spheres": [
+            {
+                "radius": 1.0,
+                "location": [
+                    0.0,
+                    0.9457693082409173,
+                    0.0
+                ],
+                "material": "krrustyMaterial10"
+            },
+            {
+                "radius": 1.0,
+                "location": [
+                    4.3638857039393075,
+                    0.9457693082409173,
+                    0.0
+                ],
+                "material": "krrustyMaterial8"
+            },
+            {
+                "radius": 1.0,
+                "location": [
+                    -4.279855264191302,
+                    0.9457693082409173,
+                    0.0
+                ],
+                "material": "krrustyMaterial12"
+            },
+            {
+                "radius": 1.0,
+                "location": [
+                    -2.1371958548481396,
+                    0.9457693082409173,
+                    0.0
+                ],
+                "material": "krrustyMaterial11"
+            },
+            {
+                "radius": 1.0,
+                "location": [
+                    2.160050630511197,
+                    0.9457692892760661,
+                    0.0
+                ],
+                "material": "krrustyMaterial9"
+            },
+            {
+                "radius": 1000.0,
+                "location": [
+                    0.0,
+                    -1000.0,
+                    0.0
+                ],
+                "material": "krrustyMaterial16"
+            }
+        ],
+        "materials": [
+            {
+                "name": "krrustyMaterial1",
+                "diffuse": [
+                    0.699999988079071,
+                    0.23899999260902405,
+                    0.04960000142455101
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.4000000059604645,
+                    0.4000000059604645,
+                    0.4000000059604645
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial2",
+                "diffuse": [
+                    0.05000000074505806,
+                    0.699999988079071,
+                    0.5
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.4000000059604645,
+                    0.4000000059604645,
+                    0.4000000059604645
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial3",
+                "diffuse": [
+                    0.05000000074505806,
+                    0.699999988079071,
+                    0.5
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.4000000059604645,
+                    0.4000000059604645,
+                    0.4000000059604645
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial4",
+                "diffuse": [
+                    0.008375992067158222,
+                    0.11726384609937668,
+                    0.08375988900661469
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.4000000059604645,
+                    0.4000000059604645,
+                    0.4000000059604645
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial5",
+                "diffuse": [
+                    0.17399999499320984,
+                    0.17399999499320984,
+                    0.17399999499320984
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.371335506439209,
+                    0.371335506439209,
+                    0.371335506439209
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial6",
+                "diffuse": [
+                    0.21299999952316284,
+                    0.21299999952316284,
+                    0.21299999952316284
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.5114006400108337,
+                    0.5114006400108337,
+                    0.5114006400108337
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial7",
+                "diffuse": [
+                    0.05000000074505806,
+                    0.699999988079071,
+                    0.5
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.4000000059604645,
+                    0.4000000059604645,
+                    0.4000000059604645
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial8",
+                "diffuse": [
+                    0.14178000390529633,
+                    0.20414333045482635,
+                    0.3400000035762787
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial9",
+                "diffuse": [
+                    0.3799999952316284,
+                    0.5614843368530273,
+                    1.0
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.75,
+                    0.75,
+                    0.75
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial10",
+                "diffuse": [
+                    0.2885430157184601,
+                    0.36020854115486145,
+                    0.16012664139270782
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.5,
+                    0.5,
+                    0.5
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial11",
+                "diffuse": [
+                    1.0,
+                    0.38478147983551025,
+                    0.06300002336502075
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    0.8678160905838013,
+                    0.8678160905838013,
+                    0.8678160905838013
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.25,
+                    0.25,
+                    0.25
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial12",
+                "diffuse": [
+                    1.0,
+                    0.22549664974212646,
+                    0.050000011920928955
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    0.7816091775894165,
+                    0.7816091775894165,
+                    0.7816091775894165
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.01149425283074379,
+                    0.01149425283074379,
+                    0.01149425283074379
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial13",
+                "diffuse": [
+                    0.05000000074505806,
+                    0.699999988079071,
+                    0.5
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.4000000059604645,
+                    0.4000000059604645,
+                    0.4000000059604645
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial14",
+                "diffuse": [
+                    0.43322476744651794,
+                    0.43322476744651794,
+                    0.43322476744651794
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.1335504949092865,
+                    0.1335504949092865,
+                    0.1335504949092865
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial15",
+                "diffuse": [
+                    0.05000000074505806,
+                    0.699999988079071,
+                    0.5
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.4000000059604645,
+                    0.4000000059604645,
+                    0.4000000059604645
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            },
+            {
+                "name": "krrustyMaterial16",
+                "diffuse": [
+                    0.14367815852165222,
+                    0.14367815852165222,
+                    0.14367815852165222
+                ],
+                "diffuse_tex": "",
+                "diffuse_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "diffuse_weight_tex": "",
+                "specular": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "specular_tex": "",
+                "specular_weight": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "specular_weight_tex": "",
+                "roughness": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness_tex": "",
+                "ior": 1.5,
+                "metallic": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "metallic_tex": "",
+                "refraction": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "refraction_tex": "",
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission_tex": "",
+                "bump": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "bump_tex": "",
+                "bump_strength": 1.0,
+                "normal_tex": "",
+                "normal_strength": 1.0
+            }
+        ],
+        "lights": {
+            "quad": [
+                {
+                    "name": "krrustyLight1",
+                    "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "intensity": 3.0,
+                    "points": [
+                        [
+                            [
+                                0.8641273284125717,
+                                4.901331615153703,
+                                -9.418802724969897
+                            ],
+                            [
+                                8.438131249078413,
+                                4.899845115329318,
+                                -8.522745552085265
+                            ],
+                            [
+                                7.8993724646791055,
+                                10.98655664318778,
+                                -3.958740972126042
+                            ],
+                            [
+                                0.325368544013263,
+                                10.988043143012167,
+                                -4.854798145010674
+                            ]
+                        ]
+                    ]
+                },
+                {
+                    "name": "krrustyLight",
+                    "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "intensity": 3.0,
+                    "points": [
+                        [
+                            [
+                                -11.350766207336067,
+                                3.1558789690267908,
+                                9.49071794260863
+                            ],
+                            [
+                                -12.016980854428269,
+                                3.0953895508748968,
+                                -0.8814941714951061
+                            ],
+                            [
+                                -6.600869153381707,
+                                11.957464269803776,
+                                -1.2810574125182974
+                            ],
+                            [
+                                -5.934654506289505,
+                                12.01795368795567,
+                                9.091154701585438
+                            ]
+                        ]
+                    ]
+                }
+            ],
+            "dir": []
+        },
+        "mesh_count": 0,
+        "sphere_count": 6,
+        "material_count": 16,
+        "quad_light_count": 2,
+        "dir_light_count": 0
+    },
+    "settings": {
+        "progressive": 1,
+        "width": 1024,
+        "height": 576,
+        "aspect_ratio": 1.7777777777777777,
+        "spp": 2048,
+        "depth": 32,
+        "aperature": 0.0,
+        "fov": 32.372053191615606,
+        "camera_origin": [
+            -5.739519383580615,
+            4.869366717702834,
+            -7.198281560482737
+        ],
+        "camera_aim": [
+            -0.6112287368875764,
+            0.3187934149653646,
+            0.912512344679437
+        ],
+        "camera_focus": [
+            0.056236826265116724,
+            0.584015947852679,
+            -0.852252581034162
+        ],
+        "output_file": "G:/krrust_output_new2.exr"
+    }
+}

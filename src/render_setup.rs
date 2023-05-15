@@ -28,7 +28,7 @@ use rayon::prelude::*;
 use crate::lights::{QuadLight, DirectionalLight};
 
 
-pub fn render_scene(scene_file: Option<&str>) -> () {
+pub fn render_scene(scene_file: Option<&str>, output_dir: &str) -> () {
 
     print!("Processing scene...");
     let mut data: serde_json::Value = serde_json::Value::Null;
@@ -100,6 +100,7 @@ pub fn render_scene(scene_file: Option<&str>) -> () {
     let mut output = data["settings"]["output_file"].to_string();
     output.pop();
     output.remove(0);
+    let output_file = output_dir.to_owned() + "krust_render.png";
 
     // init world
     let mut world = HittableList::new();
@@ -508,7 +509,7 @@ pub fn render_scene(scene_file: Option<&str>) -> () {
                             (rgba.r.sqrt() * 255.999) as u8,
                             (rgba.g.sqrt() * 255.999) as u8,
                             (rgba.b.sqrt() * 255.999) as u8,
-                            (rgba.a.sqrt() * 255.999) as u8,
+                            255 as u8,
                         ]),
                     );
                     preview_diff.put_pixel(
@@ -529,10 +530,8 @@ pub fn render_scene(scene_file: Option<&str>) -> () {
             .as_ref()
             .expect("REASON")
             .set_image("image-001", render_view);
-
-        preview.save("G:/krrust_output/rgba.png");
-        preview_diff.save("G:/krrust_output/diffuse.png");
+        preview.save(&output_file);
     }
-    buffers.rgba.save(&output);
+    // buffers.rgba.save(&output);
     ProgressBar::finish_with_message(&progress, "% Render complete")
 }

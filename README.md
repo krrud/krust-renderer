@@ -13,7 +13,7 @@
 
 
 ## Overview <a name="overview"></a>
-This project showcases a simple raytracer written in Rust. Though relatively naive, the renderer is capable of producing very appealing results in a reasonable timeframe. Importance sampling has been introduced to help converge more efficiently, and the BVH implementation allows for relatively quick scene traversals. The principled material allows for blending of different shading techniques to create varied and realistic surfaces with ease. 
+This project showcases a simple raytracer written in Rust. Though relatively naive, the renderer is capable of producing very appealing results in a reasonable timeframe. Importance sampling has been introduced to help converge more efficiently, and the BVH implementation allows for relatively quick scene traversals. GGX sampling is used for the specular response, and the principled material allows for blending of different shading techniques to create varied and realistic surfaces with ease. 
 
 Future improvements currently in development:
 - Subdivision scheme (catclark and adaptive)
@@ -34,17 +34,17 @@ To run this project, you will need Rust installed and the following dependencies
 - num_cpus = "1.14.0"
 
 ## Usage <a name="usage"></a>
-Scenes can be generated for use within maya using the provided plugin and scripts. A number of example scenes are available as well. To render an example scene simply input the scene file into the main function as follows:
+Scenes can be generated for use within maya using the provided plugin and scripts. A few simple example scenes are available to test as well. To render an example scene simply input the scene file, and output directory into the main function as follows:
 
 ```rust
-fn main() {
-    render_scene("path to .json file");
- }
+render_scene(
+    Some("examples/example_spheres.json"),
+    "C:/krust_output/"
+);
  ```
 
  Provided examples scenes:
  - examples/spheres_example.json 
- - examples/bust_example.json 
  - examples/crocodiles_example.json 
 
 

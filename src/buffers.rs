@@ -46,8 +46,6 @@ impl FrameBuffers {
             diffuse,
             specular,
             Color::black(),
-            Color::black(),
-            Color::black(),
             )
     }
 
