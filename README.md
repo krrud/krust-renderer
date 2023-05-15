@@ -38,14 +38,14 @@ Scenes can be generated for use within maya using the provided plugin and script
 
 ```rust
 render_scene(
-    Some("examples/example_spheres.json"),
+    Some("examples/spheres.json"),
     "C:/krust_output/"
 );
  ```
 
  Provided examples scenes:
- - examples/spheres_example.json 
- - examples/crocodiles_example.json 
+ - examples/spheres.json 
+ - examples/dog.json 
 
 
 ## Acknowledgements <a name="acknowledgements"></a>
