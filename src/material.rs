@@ -432,7 +432,7 @@ impl Scatterable for Principle {
             // compute weights
             let light_pdf = LightPdf::new(lights.clone(), rec.point, perturbed_normal);
             let cosine_pdf_val = cosine_pdf.value(&scattered.direction) * 0.5;
-            let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5 / pdf_val as f64;
+            let light_pdf_val = light_pdf.value(&scattered.direction) * 0.5;
             let mut pdf = Principle::scatter_pdf(&r_in, &rec, &scattered);
             pdf = pdf / (cosine_pdf_val + light_pdf_val);
 

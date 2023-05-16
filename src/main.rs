@@ -24,7 +24,7 @@ use crate::render_setup::render_scene;
 #[show_image::main]
 fn main() {
     render_scene(
-        Some("examples/dog.json"),
+        Some("examples/spheres.json"),
         "C:/krust_output/"
     );
  }

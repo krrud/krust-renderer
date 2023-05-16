@@ -136,7 +136,7 @@ pub fn ray_color(
             let gradient_color = Color::new(0.63, 0.75, 1.0, if hide_skydome {0.0} else {1.0});
             let gradient = Color::new(1.0, 1.0, 1.0, if hide_skydome {0.0} else {1.0}) * (1.0 - t) + gradient_color * t;
             return Lobes {
-                rgba: Color::white(),//gradient_color*gradient_color,
+                rgba: Color::black(),// gradient_color*gradient_color,
                 diffuse: Color::black(),
                 specular: Color::black(),
                 emission: Color::black(),

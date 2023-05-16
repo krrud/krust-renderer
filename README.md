@@ -1,7 +1,8 @@
 # Krust Renderer
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
-![Example render](img/crocodiles_example.png)
-![Example render](img/bust_example.png)
+![Example diffuse render](img/crocodiles_example.png)
+![Example render showcasing normal maps and ggx](img/bust_example.png)
+![Simple sphere](img/simple_sphere.png)
 
 
 ## Table of Contents
@@ -13,13 +14,14 @@
 
 
 ## Overview <a name="overview"></a>
-This project showcases a simple raytracer written in Rust. Though relatively naive, the renderer is capable of producing very appealing results in a reasonable timeframe. Importance sampling has been introduced to help converge more efficiently, and the BVH implementation allows for relatively quick scene traversals. GGX sampling is used for the specular response, and the principled material allows for blending of different shading techniques to create varied and realistic surfaces with ease. 
+This project showcases a simple raytracer written in Rust. Though relatively naive, the renderer is capable of producing very appealing results in a reasonable timeframe. Multiple importance sampling has been utilized to help converge more efficiently, and the BVH implementation allows for relatively quick scene traversals. GGX sampling is used for the specular response, while the principled material allows for blending of different shading techniques to create varied and realistic surfaces with ease. 
 
 Future improvements currently in development:
-- Subdivision scheme (catclark and adaptive)
+- Subdivision (catclark and adaptive)
 - Subsurface scattering (diffusion and randomwalk)
 - Volumes
 - Radiance caching
+- More robust integration with Maya
 
 
 ## Installation <a name="installation"></a>
@@ -34,12 +36,12 @@ To run this project, you will need Rust installed and the following dependencies
 - num_cpus = "1.14.0"
 
 ## Usage <a name="usage"></a>
-Scenes can be generated for use within maya using the provided plugin and scripts. A few simple example scenes are available to test as well. To render an example scene simply input the scene file, and output directory into the main function as follows:
+Scenes can be generated within maya using the provided plugin and scripts in the src/maya directory. A few simple example scenes are available to test as well. To render an example scene simply input the scene file, and output directory into the main function as follows:
 
 ```rust
 render_scene(
-    Some("examples/spheres.json"),
-    "C:/krust_output/"
+    Some("path to scene file"),
+    "path to output directory"
 );
  ```
 
